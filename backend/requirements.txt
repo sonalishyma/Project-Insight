@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+openai
+httpx
+tavily-python
+yfinance
+wikipedia-api
+slowapi
