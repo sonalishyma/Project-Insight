@@ -33,6 +33,7 @@ if os.getenv("FRONTEND_URL"):
 
 app.add_middleware(
     CORSMiddleware,
+    "https://project-insight-roan.vercel.app",
     allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
