@@ -27,13 +27,13 @@ _origins = [
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
     "http://127.0.0.1:5173",
+    "https://project-insight-roan.vercel.app",
 ]
 if os.getenv("FRONTEND_URL"):
     _origins.append(os.environ["FRONTEND_URL"])
 
 app.add_middleware(
     CORSMiddleware,
-    "https://project-insight-roan.vercel.app",
     allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
