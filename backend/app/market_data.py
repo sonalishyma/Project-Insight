@@ -115,15 +115,24 @@ def fetch(company: str) -> dict:
 
     from . import edgar as _edgar
     ticker_sym, edgar_cik = _edgar.find_ticker(company)
+    print(f"[market_data] ticker lookup for '{company}': {ticker_sym}", flush=True)
     if not ticker_sym:
         return result
     result["ticker"] = ticker_sym
     result["cik"] = edgar_cik
 
     # ── Company profile ────────────────────────────────────────────────────
-    profile_list = _fmp("/profile", symbol=ticker_sym)
-    if isinstance(profile_list, list) and profile_list:
-        p = profile_list[0]
+    # FMP stable /profile returns either a list [{...}] or a plain dict {...}
+    profile_raw = _fmp("/profile", symbol=ticker_sym)
+    if isinstance(profile_raw, list) and profile_raw:
+        p = profile_raw[0]
+    elif isinstance(profile_raw, dict) and profile_raw:
+        p = profile_raw
+    else:
+        p = None
+    print(f"[market_data] FMP profile for {ticker_sym}: type={type(profile_raw).__name__}, len={len(profile_raw) if profile_raw else 0}", flush=True)
+    if p:
+        print(f"[market_data] marketCap={p.get('marketCap')}, exchange={p.get('exchange')}", flush=True)
         website = p.get("website") or ""
         domain = _extract_domain(website) if website else ""
         domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
@@ -145,9 +154,14 @@ def fetch(company: str) -> dict:
         })
 
     # ── TTM ratios ─────────────────────────────────────────────────────────
-    ratios_list = _fmp("/ratios-ttm", symbol=ticker_sym)
-    if isinstance(ratios_list, list) and ratios_list:
-        r = ratios_list[0]
+    ratios_raw = _fmp("/ratios-ttm", symbol=ticker_sym)
+    if isinstance(ratios_raw, list) and ratios_raw:
+        r = ratios_raw[0]
+    elif isinstance(ratios_raw, dict) and ratios_raw:
+        r = ratios_raw
+    else:
+        r = None
+    if r:
         raw_dy = r.get("dividendYieldTTM")
         dy = _safe_float(float(raw_dy) * 100, 4) if raw_dy else None
         result.update({
@@ -356,26 +370,34 @@ def enrich_competitor(comp: dict) -> dict:
     if not isinstance(comp, dict):
         return {"name": str(comp), "note": "", "overlapping_products": []}
     name = comp.get("name", "")
-    data = _fmp("/search", query=name, limit=5) or []
-    for item in data:
-        if item.get("exchangeShortName") in {"NASDAQ", "NYSE", "AMEX"}:
-            ticker_sym = item["symbol"]
-            profile = _fmp("/profile", symbol=ticker_sym)
-            if isinstance(profile, list) and profile:
-                p = profile[0]
-                website = p.get("website") or ""
-                domain = _extract_domain(website) if website else ""
-                domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
-                return {
-                    **comp,
-                    "ticker": ticker_sym,
-                    "market_cap": _fmt_currency(p.get("marketCap")),
-                    "revenue": _fmt_currency(p.get("revenue")),
-                    "industry": p.get("industry"),
-                    "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
-                }
-            return {**comp, "ticker": ticker_sym}
-    return comp
+    if not name:
+        return comp
+
+    # FMP /search is broken for name queries — use SEC EDGAR instead
+    from . import edgar as _edgar
+    ticker_sym, _ = _edgar.find_ticker(name)
+    if not ticker_sym:
+        return comp
+
+    profile_raw = _fmp("/profile", symbol=ticker_sym)
+    if isinstance(profile_raw, list) and profile_raw:
+        p = profile_raw[0]
+    elif isinstance(profile_raw, dict) and profile_raw:
+        p = profile_raw
+    else:
+        return {**comp, "ticker": ticker_sym}
+
+    website = p.get("website") or ""
+    domain = _extract_domain(website) if website else ""
+    domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
+    return {
+        **comp,
+        "ticker": ticker_sym,
+        "market_cap": _fmt_currency(p.get("marketCap")),
+        "revenue": _fmt_currency(p.get("revenue")),
+        "industry": p.get("industry"),
+        "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
+    }
 
 
 def get_stock_history(ticker: str, period: str) -> list[dict]:

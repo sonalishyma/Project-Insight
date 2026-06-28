@@ -45,6 +45,24 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/market")
+def debug_market(company: str = Query(default="Nike")):
+    """Diagnostic: returns raw market data fetch result for a company name."""
+    from . import edgar as _edgar
+    ticker, cik = _edgar.find_ticker(company)
+    mdata = market_data.fetch(company)
+    return {
+        "edgar_ticker": ticker,
+        "edgar_cik": cik,
+        "fmp_market_cap": mdata.get("market_cap"),
+        "fmp_exchange": mdata.get("exchange"),
+        "fmp_sector": mdata.get("sector"),
+        "is_public": bool(mdata.get("ticker") and mdata.get("market_cap")),
+        "logo_url": mdata.get("logo_url"),
+        "ticker_in_result": mdata.get("ticker"),
+    }
+
+
 @app.post("/analyze", response_model=MarketAnalysis)
 @limiter.limit("6/minute")
 def analyze(request: Request, req: AnalyzeRequest):
