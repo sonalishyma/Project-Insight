@@ -226,6 +226,20 @@ body {
   .library-side.open .library-tab { right: 14px; bottom: calc(68vh + 12px); }
 }
 
+/* ── Mobile layout ── */
+@media (max-width: 600px) {
+  .app { padding: 20px 14px 60px; }
+  .report-top-banner-inner { padding: 8px 14px; gap: 8px; }
+  .banner-btn { padding: 5px 10px; font-size: 0.7rem; }
+  .report-header { gap: 10px; }
+  .report-header-left { gap: 10px; }
+  .report-header-left h2 { font-size: 1.35rem; }
+  .company-logo { width: 42px; height: 42px; }
+  .section { padding: 18px 14px; }
+  .snapshot-grid { grid-template-columns: repeat(2, 1fr); }
+  .search-form { gap: 8px; }
+}
+
 /* ── Public Intel ── */
 .intel-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
 .intel-stat { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; background: var(--surface-alt); border: 1.5px solid var(--border); border-radius: 9px; }
