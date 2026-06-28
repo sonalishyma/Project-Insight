@@ -342,6 +342,8 @@ def search_companies(query: str, limit: int = 6) -> list[dict]:
 
 
 def enrich_competitor(comp: dict) -> dict:
+    if not isinstance(comp, dict):
+        return {"name": str(comp), "note": "", "overlapping_products": []}
     name = comp.get("name", "")
     data = _fmp("/search", query=name, limit=5) or []
     for item in data:

@@ -283,8 +283,20 @@ def _build_snapshot(mdata: dict) -> CompanySnapshot:
     )
 
 
+def _normalize_competitor(c) -> dict:
+    """Coerce LLM competitor output to a valid dict regardless of what the model returned."""
+    if not isinstance(c, dict):
+        return {"name": str(c), "note": "", "overlapping_products": []}
+    ops = c.get("overlapping_products", [])
+    if isinstance(ops, str):
+        c["overlapping_products"] = [ops] if ops else []
+    elif not isinstance(ops, list):
+        c["overlapping_products"] = []
+    return c
+
+
 def _enrich_and_date(data: dict, articles: list[dict]) -> tuple[list, dict]:
-    raw_competitors = data.get("competitors", [])
+    raw_competitors = [_normalize_competitor(c) for c in data.get("competitors", [])]
     with ThreadPoolExecutor(max_workers=5) as executor:
         enriched = list(executor.map(market_data.enrich_competitor, raw_competitors))
     article_dates: dict[str, str | None] = {a["url"]: a.get("date") for a in articles}
