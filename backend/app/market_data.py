@@ -67,7 +67,10 @@ def _safe_float(val, decimals: int = 2) -> float | None:
 
 
 def _extract_domain(url: str) -> str:
-    return url.replace("https://", "").replace("http://", "").split("/")[0]
+    host = url.replace("https://", "").replace("http://", "").split("/")[0]
+    # Strip non-brand subdomains so "investors.nike.com" → "nike.com"
+    host = re.sub(r"^(www|investors?|ir|about|corporate|finance|investor|careers|news)\.", "", host)
+    return host
 
 
 def _truncate_at_sentence(text: str, max_chars: int = 800) -> str:
@@ -122,6 +125,8 @@ def fetch(company: str) -> dict:
     if isinstance(profile_list, list) and profile_list:
         p = profile_list[0]
         website = p.get("website") or ""
+        domain = _extract_domain(website) if website else ""
+        domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
         hq = ", ".join(x for x in [p.get("city"), p.get("state"), p.get("country")] if x)
         emp_raw = p.get("fullTimeEmployees")
         result.update({
@@ -132,10 +137,11 @@ def fetch(company: str) -> dict:
             "headquarters": hq or None,
             "employees": int(emp_raw) if emp_raw else None,
             "market_cap": _fmt_currency(p.get("marketCap")),
+            "revenue": _fmt_currency(p.get("revenue")),
             "website": website or None,
-            "logo_url": p.get("image") or None,
+            "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
             "wiki_summary": _truncate_at_sentence(p.get("description") or "") or None,
-            "cik": p.get("cik") or None,
+            "cik": result.get("cik") or p.get("cik") or None,
         })
 
     # ── TTM ratios ─────────────────────────────────────────────────────────
@@ -236,8 +242,14 @@ def fetch(company: str) -> dict:
     # ── Stock history (daily → sampled weekly) ─────────────────────────────
     hist = _fmp("/historical-price-eod/full", symbol=ticker_sym, timeseries=365)
     if isinstance(hist, dict) and hist.get("historical"):
-        daily = list(reversed(hist["historical"]))  # oldest → newest
-        sampled = daily[::5]                         # ~weekly resolution
+        raw_hist = hist["historical"]
+    elif isinstance(hist, list):
+        raw_hist = hist
+    else:
+        raw_hist = []
+    if raw_hist:
+        daily = list(reversed(raw_hist))  # oldest → newest
+        sampled = daily[::5]              # ~weekly resolution
         stock_history = []
         prev_close = None
         for pt in sampled:
@@ -351,13 +363,16 @@ def enrich_competitor(comp: dict) -> dict:
             profile = _fmp("/profile", symbol=ticker_sym)
             if isinstance(profile, list) and profile:
                 p = profile[0]
+                website = p.get("website") or ""
+                domain = _extract_domain(website) if website else ""
+                domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
                 return {
                     **comp,
                     "ticker": ticker_sym,
                     "market_cap": _fmt_currency(p.get("marketCap")),
                     "revenue": _fmt_currency(p.get("revenue")),
                     "industry": p.get("industry"),
-                    "logo_url": p.get("image") or None,
+                    "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
                 }
             return {**comp, "ticker": ticker_sym}
     return comp
@@ -389,10 +404,14 @@ def get_stock_history(ticker: str, period: str) -> list[dict]:
         return points
 
     hist = _fmp("/historical-price-eod/full", symbol=ticker, timeseries=ts)
-    if not isinstance(hist, dict) or not hist.get("historical"):
+    if isinstance(hist, dict) and hist.get("historical"):
+        raw = hist["historical"]
+    elif isinstance(hist, list):
+        raw = hist
+    else:
         return []
 
-    daily = list(reversed(hist["historical"]))
+    daily = list(reversed(raw))
     sampled = daily[::sample]
     points = []
     prev_close = None
