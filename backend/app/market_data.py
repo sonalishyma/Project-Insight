@@ -123,22 +123,18 @@ def fetch(company: str) -> dict:
     if isinstance(profile_list, list) and profile_list:
         p = profile_list[0]
         website = p.get("website") or ""
-        domain = _extract_domain(website).lstrip("www.") if website else ""
-        domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
         hq = ", ".join(x for x in [p.get("city"), p.get("state"), p.get("country")] if x)
+        emp_raw = p.get("fullTimeEmployees")
         result.update({
-            "exchange": _EXCHANGE_MAP.get(p.get("exchangeShortName", ""), p.get("exchangeShortName")) or None,
+            "exchange": p.get("exchange") or None,
             "sector": p.get("sector") or None,
             "industry": p.get("industry") or None,
             "ceo": p.get("ceo") or None,
             "headquarters": hq or None,
-            "employees": p.get("fullTimeEmployees") or None,
-            "market_cap": _fmt_currency(p.get("mktCap")),
-            "revenue": _fmt_currency(p.get("revenue")),
-            "pe_ratio": _safe_float(p.get("pe")),
-            "eps": _safe_float(p.get("eps")),
+            "employees": int(emp_raw) if emp_raw else None,
+            "market_cap": _fmt_currency(p.get("marketCap")),
             "website": website or None,
-            "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
+            "logo_url": p.get("image") or None,
             "wiki_summary": _truncate_at_sentence(p.get("description") or "") or None,
             "cik": p.get("cik") or None,
         })
@@ -354,16 +350,13 @@ def enrich_competitor(comp: dict) -> dict:
             profile = _fmp("/profile", symbol=ticker_sym)
             if isinstance(profile, list) and profile:
                 p = profile[0]
-                website = p.get("website") or ""
-                domain = _extract_domain(website).lstrip("www.") if website else ""
-                domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
                 return {
                     **comp,
                     "ticker": ticker_sym,
-                    "market_cap": _fmt_currency(p.get("mktCap")),
+                    "market_cap": _fmt_currency(p.get("marketCap")),
                     "revenue": _fmt_currency(p.get("revenue")),
                     "industry": p.get("industry"),
-                    "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
+                    "logo_url": p.get("image") or None,
                 }
             return {**comp, "ticker": ticker_sym}
     return comp
