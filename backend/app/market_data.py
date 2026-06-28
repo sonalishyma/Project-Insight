@@ -83,14 +83,11 @@ def _truncate_at_sentence(text: str, max_chars: int = 800) -> str:
 
 
 def _find_ticker(company: str) -> str | None:
-    data = _fmp("/search", query=company, limit=8)
-    if not isinstance(data, list) or not data:
-        return None
-    priority = {"NASDAQ", "NYSE", "AMEX", "NYSE ARCA"}
-    for item in data:
-        if item.get("exchangeShortName") in priority:
-            return item["symbol"]
-    return data[0]["symbol"]
+    # FMP stable search is currently non-functional for name queries;
+    # fall back to SEC EDGAR's company list which covers all US public companies.
+    from . import edgar as _edgar
+    ticker, _ = _edgar.find_ticker(company)
+    return ticker
 
 
 def fetch(company: str) -> dict:
@@ -113,10 +110,12 @@ def fetch(company: str) -> dict:
         "cik": None,
     }
 
-    ticker_sym = _find_ticker(company)
+    from . import edgar as _edgar
+    ticker_sym, edgar_cik = _edgar.find_ticker(company)
     if not ticker_sym:
         return result
     result["ticker"] = ticker_sym
+    result["cik"] = edgar_cik
 
     # ── Company profile ────────────────────────────────────────────────────
     profile_list = _fmp("/profile", symbol=ticker_sym)
