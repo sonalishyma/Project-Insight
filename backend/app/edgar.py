@@ -4,6 +4,7 @@ the business description from the latest 10-K for public companies.
 No API key required; SEC requires a descriptive User-Agent.
 """
 
+import re
 import httpx
 
 _HEADERS = {
@@ -11,6 +12,67 @@ _HEADERS = {
     "Accept-Encoding": "gzip, deflate",
 }
 _client = httpx.Client(timeout=12.0, headers=_HEADERS)
+
+# Loaded once on first call; maps normalised company name → (ticker, cik)
+_NAME_MAP: dict[str, tuple[str, str]] | None = None
+
+
+def _norm(name: str) -> str:
+    """Lowercase, strip common legal suffixes, collapse whitespace."""
+    name = name.lower()
+    name = re.sub(r"\b(inc|corp|ltd|llc|co|plc|group|holdings?|technologies?|systems?|the)\b\.?", "", name)
+    name = re.sub(r"[^\w\s]", "", name)
+    return re.sub(r"\s+", " ", name).strip()
+
+
+def _load_name_map() -> dict[str, tuple[str, str]]:
+    global _NAME_MAP
+    if _NAME_MAP is not None:
+        return _NAME_MAP
+    result: dict[str, tuple[str, str]] = {}
+    try:
+        r = _client.get("https://www.sec.gov/files/company_tickers.json", timeout=15)
+        for item in r.json().values():
+            ticker = item.get("ticker", "")
+            title = item.get("title", "")
+            cik = str(item.get("cik_str", "")).zfill(10)
+            if ticker and title:
+                result[_norm(title)] = (ticker, cik)
+    except Exception:
+        pass
+    _NAME_MAP = result
+    return result
+
+
+def find_ticker(company: str) -> tuple[str, str] | tuple[None, None]:
+    """
+    Return (ticker, cik) for a company name using SEC's company list.
+    Falls back through exact → prefix → all-words matching.
+    Returns (None, None) if not found.
+    """
+    name_map = _load_name_map()
+    if not name_map:
+        return None, None
+
+    q = _norm(company)
+
+    # 1. Exact match
+    if q in name_map:
+        return name_map[q]
+
+    # 2. Map key starts with the query  (e.g. "nike" matches "nike inc")
+    for key, val in name_map.items():
+        if key.startswith(q):
+            return val
+
+    # 3. All words in query appear in the key
+    words = q.split()
+    if words:
+        for key, val in name_map.items():
+            if all(w in key for w in words):
+                return val
+
+    return None, None
 
 # 8-K item codes → plain-English labels
 _8K_ITEMS: dict[str, str] = {
@@ -31,22 +93,12 @@ _8K_ITEMS: dict[str, str] = {
     "8.01": "other material event",
 }
 
-_CIK_CACHE: dict[str, str] = {}
-
-
 def _get_cik(ticker: str) -> str | None:
-    ticker = ticker.upper()
-    if ticker in _CIK_CACHE:
-        return _CIK_CACHE[ticker]
-    try:
-        r = _client.get("https://www.sec.gov/files/company_tickers.json")
-        for item in r.json().values():
-            if item.get("ticker", "").upper() == ticker:
-                cik = str(item["cik_str"]).zfill(10)
-                _CIK_CACHE[ticker] = cik
-                return cik
-    except Exception:
-        pass
+    name_map = _load_name_map()
+    ticker_upper = ticker.upper()
+    for _ticker, cik in name_map.values():
+        if _ticker == ticker_upper:
+            return cik
     return None
 
 
