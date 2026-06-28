@@ -395,8 +395,7 @@ function HomePage({ onSearch }) {
       </div>
 
       <div className="home-disclaimer">
-        <span className="home-disclaimer-icon">ℹ️</span>
-        Insight runs on free-tier APIs and an auto-sleeping backend, so your first search may take 30–60 seconds or need a second try — that's completely normal. Results are worth the wait.
+        Insight runs on free-tier APIs and an auto-sleeping backend, so your first search may take 30–60 seconds or need a second try &amp; that's completely normal. Results are worth the wait.
       </div>
     </div>
   )
