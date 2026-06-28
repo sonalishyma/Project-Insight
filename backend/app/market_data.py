@@ -4,7 +4,22 @@ from datetime import date as _date
 from datetime import datetime
 
 import pandas as pd
+import requests
 import yfinance as yf
+
+# Yahoo Finance blocks default Python/yfinance user-agents on cloud IPs.
+# Using a browser UA improves hit rate on hosted environments like Render.
+_YF_SESSION = requests.Session()
+_YF_SESSION.headers.update({
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://finance.yahoo.com/",
+})
 
 _EXCHANGE_MAP = {
     "NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ",
@@ -77,7 +92,7 @@ def _fmt_grade_action(action: str | None) -> str | None:
 
 def _find_ticker(company: str) -> str | None:
     try:
-        results = yf.Search(company, max_results=5)
+        results = yf.Search(company, max_results=5, session=_YF_SESSION)
         for q in results.quotes:
             if q.get("quoteType") == "EQUITY":
                 return q.get("symbol")
@@ -151,7 +166,7 @@ def fetch(company: str) -> dict:
     result["ticker"] = ticker_sym
 
     try:
-        t = yf.Ticker(ticker_sym)
+        t = yf.Ticker(ticker_sym, session=_YF_SESSION)
         info = t.info or {}
 
         # Exchange
@@ -439,7 +454,7 @@ def search_companies(query: str, limit: int = 6) -> list[dict]:
     if len(q) < 2:
         return []
     try:
-        results = yf.Search(q, max_results=limit)
+        results = yf.Search(q, max_results=limit, session=_YF_SESSION)
         suggestions = []
         seen: set[str] = set()
         for item in results.quotes:
@@ -478,11 +493,11 @@ def enrich_competitor(comp: dict) -> dict:
     """Add ticker, market cap (USD only), revenue, industry, logo to a competitor dict."""
     name = comp.get("name", "")
     try:
-        results = yf.Search(name, max_results=5)
+        results = yf.Search(name, max_results=5, session=_YF_SESSION)
         for q in results.quotes:
             if q.get("quoteType") == "EQUITY":
                 ticker_sym = q.get("symbol")
-                t = yf.Ticker(ticker_sym)
+                t = yf.Ticker(ticker_sym, session=_YF_SESSION)
                 try:
                     info = t.info or {}
                     currency = info.get("currency", "USD")
@@ -513,7 +528,7 @@ def get_stock_history(ticker: str, period: str) -> list[dict]:
     }
     interval = period_to_interval.get(period, "1wk")
     try:
-        t = yf.Ticker(ticker)
+        t = yf.Ticker(ticker, session=_YF_SESSION)
         hist = t.history(period=period, interval=interval)
         if hist.empty:
             return []
