@@ -37,8 +37,16 @@ def _load_name_map() -> dict[str, tuple[str, str]]:
             ticker = item.get("ticker", "")
             title = item.get("title", "")
             cik = str(item.get("cik_str", "")).zfill(10)
-            if ticker and title:
-                result[_norm(title)] = (ticker, cik)
+            if not ticker or not title:
+                continue
+            key = _norm(title)
+            existing = result.get(key)
+            if existing is None:
+                result[key] = (ticker, cik)
+            elif "-" in existing[0] and "-" not in ticker:
+                # Prefer common stock (no hyphen, e.g. "T") over
+                # preferred/derivative shares (e.g. "T-PC", "T-A")
+                result[key] = (ticker, cik)
         print(f"[EDGAR] loaded {len(result)} companies", flush=True)
     except Exception as e:
         print(f"[EDGAR] failed to load name map: {e}", flush=True)
