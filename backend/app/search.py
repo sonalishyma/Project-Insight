@@ -86,11 +86,17 @@ def fetch(company: str) -> list[dict]:
             "topic": "general",
         },
         {
+            "query": f"{company} competitors rival companies market share comparison",
+            "search_depth": "basic",
+            "max_results": 5,
+            "topic": "general",
+        },
+        {
             "query": f"{company} earnings revenue financial results news",
             "search_depth": "basic",
-            "max_results": 6,
+            "max_results": 5,
             "topic": "news",
-            "days": 30,  # current month only
+            "days": 30,
         },
     ]
 
@@ -130,6 +136,12 @@ def fetch_private(company: str) -> list[dict]:
             "topic": "general",
         },
         {
+            "query": f"{company} competitors alternatives rival companies similar market",
+            "search_depth": "basic",
+            "max_results": 6,
+            "topic": "general",
+        },
+        {
             "query": f"{company} market analysis competitive landscape business strategy",
             "search_depth": "basic",
             "max_results": 5,
@@ -138,14 +150,14 @@ def fetch_private(company: str) -> list[dict]:
         {
             "query": f"{company} news employees growth customers partnerships enterprise",
             "search_depth": "basic",
-            "max_results": 6,
+            "max_results": 5,
             "topic": "news",
             "days": 90,
         },
         {
             "query": f"{company} company history founded milestones product launch valuation",
             "search_depth": "basic",
-            "max_results": 5,
+            "max_results": 4,
             "topic": "general",
         },
     ]
