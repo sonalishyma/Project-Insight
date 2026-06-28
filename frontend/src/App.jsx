@@ -854,12 +854,12 @@ function Snapshot({ snap }) {
     { label: 'Sector', value: snap.sector },
     { label: 'Industry', value: snap.industry },
     { label: 'Employees', value: snap.employees?.toLocaleString() },
-    { label: 'Market Cap', value: snap.market_cap, source: 'Yahoo Finance' },
-    { label: 'Revenue (TTM)', value: snap.revenue, source: 'Yahoo Finance' },
-    { label: 'Net Income', value: snap.net_income, source: 'Yahoo Finance' },
-    { label: 'Operating Income', value: snap.operating_income, source: 'Yahoo Finance' },
-    { label: 'Cash on Hand', value: snap.cash, source: 'Yahoo Finance' },
-    { label: 'Total Debt', value: snap.total_debt, source: 'Yahoo Finance' },
+    { label: 'Market Cap', value: snap.market_cap, source: 'FMP' },
+    { label: 'Revenue (TTM)', value: snap.revenue, source: 'FMP' },
+    { label: 'Net Income', value: snap.net_income, source: 'FMP' },
+    { label: 'Operating Income', value: snap.operating_income, source: 'FMP' },
+    { label: 'Cash on Hand', value: snap.cash, source: 'FMP' },
+    { label: 'Total Debt', value: snap.total_debt, source: 'FMP' },
   ].filter(s => s.value)
 
   return (
@@ -868,14 +868,10 @@ function Snapshot({ snap }) {
         {stats.map(s => (
           <div key={s.label} className="snapshot-stat">
             <span className="stat-label">{s.label}</span>
-            <span className="stat-value">
-              {s.value}
-              {s.source && (
-                <span className="stat-source">
-                  {' · '}{s.source}{snap.data_as_of ? ` ${snap.data_as_of}` : ''}
-                </span>
-              )}
-            </span>
+            <span className="stat-value">{s.value}</span>
+            {s.source && (
+              <span className="stat-source">{s.source}</span>
+            )}
           </div>
         ))}
         {snap.website && (
@@ -949,7 +945,7 @@ function StockChart({ initialData, ticker }) {
   }
 
   return (
-    <Section title={`Stock Performance${ticker ? ` · ${ticker}` : ''}`} action={<span className="section-source-tag">Yahoo Finance</span>}>
+    <Section title={`Stock Performance${ticker ? ` · ${ticker}` : ''}`} action={<span className="section-source-tag">FMP</span>}>
       <div className="chart-controls">
         {PERIODS.map(p => (
           <button
@@ -1009,7 +1005,7 @@ function AnalystSentimentSection({ sentiment }) {
   return (
     <Section
       title={`Analyst Sentiment${sentiment.data_as_of ? ` · as of ${sentiment.data_as_of}` : ''}`}
-      action={<span className="section-source-tag">Yahoo Finance</span>}
+      action={<span className="section-source-tag">FMP</span>}
     >
       {stats.length > 0 && (
         <div className="intel-stat-grid">
@@ -1059,7 +1055,7 @@ function EarningsInfoSection({ earnings }) {
   return (
     <Section
       title={`Earnings Information${earnings.data_as_of ? ` · as of ${earnings.data_as_of}` : ''}`}
-      action={<span className="section-source-tag">Yahoo Finance</span>}
+      action={<span className="section-source-tag">FMP</span>}
     >
       <div className="intel-stat-grid">
         {stats.map(item => (
@@ -1130,7 +1126,7 @@ function FinancialMetrics({ ratios, summary }) {
   return (
     <Section
       title={`Financial Metrics${ratios.data_as_of ? ` · as of ${ratios.data_as_of}` : ''}`}
-      action={<span className="section-source-tag">Yahoo Finance</span>}
+      action={<span className="section-source-tag">FMP</span>}
     >
       <div className="metrics-board">
         {groups.map(g => {
@@ -1179,7 +1175,7 @@ function NavyHatchDefs({ id }) {
 
 function AnnualRevenueChart({ data }) {
   return (
-    <Section title="Annual Revenue & Gross Profit ($B)" action={<span className="section-source-tag">Yahoo Finance</span>}>
+    <Section title="Annual Revenue & Gross Profit ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <NavyHatchDefs id="hatch-rev" />
@@ -1198,7 +1194,7 @@ function AnnualRevenueChart({ data }) {
 
 function AnnualIncomeChart({ data }) {
   return (
-    <Section title="Annual Operating & Net Income ($B)" action={<span className="section-source-tag">Yahoo Finance</span>}>
+    <Section title="Annual Operating & Net Income ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <NavyHatchDefs id="hatch-inc" />
@@ -1217,7 +1213,7 @@ function AnnualIncomeChart({ data }) {
 
 function AnnualFCFChart({ data }) {
   return (
-    <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">Yahoo Finance</span>}>
+    <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
@@ -1233,7 +1229,7 @@ function AnnualFCFChart({ data }) {
 
 function AnnualEPSChart({ data }) {
   return (
-    <Section title="Annual EPS" action={<span className="section-source-tag">Yahoo Finance</span>}>
+    <Section title="Annual EPS" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
@@ -1254,7 +1250,7 @@ function QuarterlyChart({ data }) {
   const visible = showAll ? data : data.slice(-6)
 
   return (
-    <Section title="Quarterly Revenue vs Net Income ($B)" action={<span className="section-source-tag">Yahoo Finance</span>}>
+    <Section title="Quarterly Revenue vs Net Income ($B)" action={<span className="section-source-tag">FMP</span>}>
       <div className="chart-controls">
         <button className={`period-btn ${!showAll ? 'active' : ''}`} onClick={() => setShowAll(false)}>Last 6Q</button>
         <button className={`period-btn ${showAll ? 'active' : ''}`} onClick={() => setShowAll(true)}>All</button>
