@@ -11,7 +11,7 @@ from .schemas import (
     MarketAnalysis, Milestone, MarketTraction, Positioning, Source,
     StockPoint, SwotAnalysis,
 )
-from . import search, market_data
+from . import search, market_data, edgar
 
 load_dotenv()
 
@@ -235,6 +235,12 @@ _PRIVATE_TOOL = {
 
 def _build_context(articles: list[dict], company: str, mdata: dict) -> str:
     context = search.format_context(articles)
+
+    # SEC 8-K events — appended before financial data so LLM sees official filings
+    if mdata.get("ticker"):
+        events = edgar.fetch_recent_events(mdata["ticker"], cik=mdata.get("cik"))
+        context += edgar.format_events_context(events, company)
+
     fin_lines = []
     if mdata.get("ticker"):
         fin_lines.append(f"\nVerified market data for {company} ({mdata['ticker']}):")
