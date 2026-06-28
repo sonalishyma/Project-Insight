@@ -311,6 +311,8 @@ def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict])
     completion = client.chat.completions.create(
         model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
         max_tokens=3000,
+        temperature=0,
+        seed=42,
         tools=[_PUBLIC_TOOL],
         tool_choice={"type": "function", "function": {"name": "output_analysis"}},
         messages=[
@@ -388,6 +390,8 @@ def _run_private(company: str, client: OpenAI, mdata: dict, articles: list[dict]
     completion = client.chat.completions.create(
         model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
         max_tokens=3500,
+        temperature=0,
+        seed=42,
         tools=[_PRIVATE_TOOL],
         tool_choice={"type": "function", "function": {"name": "output_analysis"}},
         messages=[
