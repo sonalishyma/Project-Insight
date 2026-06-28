@@ -6,7 +6,7 @@ from datetime import date as _date, timedelta
 import httpx
 
 _FMP_KEY = os.environ.get("FMP_API_KEY", "")
-_FMP_BASE = "https://financialmodelingprep.com/api"
+_FMP_BASE = "https://financialmodelingprep.com/stable"
 
 _EXCHANGE_MAP = {
     "NASDAQ": "NASDAQ", "NYSE": "NYSE", "AMEX": "AMEX",
@@ -83,7 +83,7 @@ def _truncate_at_sentence(text: str, max_chars: int = 800) -> str:
 
 
 def _find_ticker(company: str) -> str | None:
-    data = _fmp("/v3/search", query=company, limit=8)
+    data = _fmp("/search", query=company, limit=8)
     if not isinstance(data, list) or not data:
         return None
     priority = {"NASDAQ", "NYSE", "AMEX", "NYSE ARCA"}
@@ -119,7 +119,7 @@ def fetch(company: str) -> dict:
     result["ticker"] = ticker_sym
 
     # ── Company profile ────────────────────────────────────────────────────
-    profile_list = _fmp(f"/v3/profile/{ticker_sym}")
+    profile_list = _fmp("/profile", symbol=ticker_sym)
     if isinstance(profile_list, list) and profile_list:
         p = profile_list[0]
         website = p.get("website") or ""
@@ -144,7 +144,7 @@ def fetch(company: str) -> dict:
         })
 
     # ── TTM ratios ─────────────────────────────────────────────────────────
-    ratios_list = _fmp(f"/v3/ratios-ttm/{ticker_sym}")
+    ratios_list = _fmp("/ratios-ttm", symbol=ticker_sym)
     if isinstance(ratios_list, list) and ratios_list:
         r = ratios_list[0]
         raw_dy = r.get("dividendYieldTTM")
@@ -165,7 +165,7 @@ def fetch(company: str) -> dict:
         })
 
     # ── Annual income statement ────────────────────────────────────────────
-    inc_annual = _fmp(f"/v3/income-statement/{ticker_sym}", period="annual", limit=5) or []
+    inc_annual = _fmp("/income-statement", symbol=ticker_sym, period="annual", limit=5) or []
 
     if inc_annual:
         latest = inc_annual[0]
@@ -185,7 +185,7 @@ def fetch(company: str) -> dict:
                 result["earnings_growth"] = _safe_float((e0 - e1) / abs(e1), 4)
 
     # ── Annual cash flow ───────────────────────────────────────────────────
-    cf_annual = _fmp(f"/v3/cash-flow-statement/{ticker_sym}", period="annual", limit=5) or []
+    cf_annual = _fmp("/cash-flow-statement", symbol=ticker_sym, period="annual", limit=5) or []
     cf_by_year: dict[str, float | None] = {}
     for c in cf_annual:
         year = str(c.get("date", ""))[:4]
@@ -198,7 +198,7 @@ def fetch(company: str) -> dict:
         result["fcf_formatted"] = _fmt_currency(latest_cf.get("freeCashFlow"))
 
     # ── Balance sheet ──────────────────────────────────────────────────────
-    bs_list = _fmp(f"/v3/balance-sheet-statement/{ticker_sym}", period="annual", limit=1)
+    bs_list = _fmp("/balance-sheet-statement", symbol=ticker_sym, period="annual", limit=1)
     if isinstance(bs_list, list) and bs_list:
         bs = bs_list[0]
         result["total_debt"] = _fmt_currency(bs.get("totalDebt"))
@@ -225,7 +225,7 @@ def fetch(company: str) -> dict:
         result["annual_data"] = annual_data
 
     # ── Quarterly earnings ─────────────────────────────────────────────────
-    inc_q = _fmp(f"/v3/income-statement/{ticker_sym}", period="quarter", limit=8) or []
+    inc_q = _fmp("/income-statement", symbol=ticker_sym, period="quarter", limit=8) or []
     if inc_q:
         points = []
         for item in reversed(inc_q):
@@ -239,8 +239,7 @@ def fetch(company: str) -> dict:
         result["quarterly_earnings"] = points
 
     # ── Stock history (daily → sampled weekly) ─────────────────────────────
-    # timeseries=365 avoids the 'from' Python-keyword clash in params
-    hist = _fmp(f"/v3/historical-price-full/{ticker_sym}", timeseries=365)
+    hist = _fmp("/historical-price-eod/full", symbol=ticker_sym, timeseries=365)
     if isinstance(hist, dict) and hist.get("historical"):
         daily = list(reversed(hist["historical"]))  # oldest → newest
         sampled = daily[::5]                         # ~weekly resolution
@@ -267,8 +266,8 @@ def fetch(company: str) -> dict:
 
     # ── Analyst price targets ──────────────────────────────────────────────
     try:
-        consensus = _fmp("/v4/price-target-consensus", symbol=ticker_sym)
-        recs = _fmp(f"/v3/analyst-stock-recommendations/{ticker_sym}", limit=10) or []
+        consensus = _fmp("/price-target-consensus", symbol=ticker_sym)
+        recs = _fmp("/analyst-stock-recommendations", symbol=ticker_sym, limit=10) or []
         recent_actions = [
             {
                 "date": str(rec.get("date", ""))[:10],
@@ -300,7 +299,7 @@ def fetch(company: str) -> dict:
 
     # ── Earnings surprises ─────────────────────────────────────────────────
     try:
-        surprises = _fmp(f"/v3/earnings-surprises/{ticker_sym}") or []
+        surprises = _fmp("/earnings-surprises", symbol=ticker_sym) or []
         if isinstance(surprises, list) and surprises:
             s = surprises[0]
             est = _safe_float(s.get("estimatedEps"))
@@ -329,7 +328,7 @@ def search_companies(query: str, limit: int = 6) -> list[dict]:
     q = query.strip()
     if len(q) < 2:
         return []
-    data = _fmp("/v3/search", query=q, limit=limit) or []
+    data = _fmp("/search", query=q, limit=limit) or []
     suggestions = []
     seen: set[str] = set()
     for item in data:
@@ -348,11 +347,11 @@ def search_companies(query: str, limit: int = 6) -> list[dict]:
 
 def enrich_competitor(comp: dict) -> dict:
     name = comp.get("name", "")
-    data = _fmp("/v3/search", query=name, limit=5) or []
+    data = _fmp("/search", query=name, limit=5) or []
     for item in data:
         if item.get("exchangeShortName") in {"NASDAQ", "NYSE", "AMEX"}:
             ticker_sym = item["symbol"]
-            profile = _fmp(f"/v3/profile/{ticker_sym}")
+            profile = _fmp("/profile", symbol=ticker_sym)
             if isinstance(profile, list) and profile:
                 p = profile[0]
                 website = p.get("website") or ""
@@ -378,7 +377,7 @@ def get_stock_history(ticker: str, period: str) -> list[dict]:
     sample = period_sample.get(period, 5)
 
     if period == "1d":
-        data = _fmp(f"/v3/historical-chart/5min/{ticker}") or []
+        data = _fmp("/historical-chart/5min", symbol=ticker) or []
         points = []
         for pt in list(reversed(data))[-80:]:
             close = _safe_float(pt.get("close"))
@@ -395,7 +394,7 @@ def get_stock_history(ticker: str, period: str) -> list[dict]:
             })
         return points
 
-    hist = _fmp(f"/v3/historical-price-full/{ticker}", timeseries=ts)
+    hist = _fmp("/historical-price-eod/full", symbol=ticker, timeseries=ts)
     if not isinstance(hist, dict) or not hist.get("historical"):
         return []
 
