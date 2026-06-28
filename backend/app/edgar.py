@@ -27,20 +27,23 @@ def _norm(name: str) -> str:
 
 def _load_name_map() -> dict[str, tuple[str, str]]:
     global _NAME_MAP
-    if _NAME_MAP is not None:
+    if _NAME_MAP:  # only use cache if non-empty; empty dict means a previous fetch failed
         return _NAME_MAP
     result: dict[str, tuple[str, str]] = {}
     try:
-        r = _client.get("https://www.sec.gov/files/company_tickers.json", timeout=15)
+        r = _client.get("https://www.sec.gov/files/company_tickers.json", timeout=20)
+        r.raise_for_status()
         for item in r.json().values():
             ticker = item.get("ticker", "")
             title = item.get("title", "")
             cik = str(item.get("cik_str", "")).zfill(10)
             if ticker and title:
                 result[_norm(title)] = (ticker, cik)
-    except Exception:
-        pass
-    _NAME_MAP = result
+        print(f"[EDGAR] loaded {len(result)} companies", flush=True)
+    except Exception as e:
+        print(f"[EDGAR] failed to load name map: {e}", flush=True)
+    if result:  # only cache on success
+        _NAME_MAP = result
     return result
 
 

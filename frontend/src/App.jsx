@@ -224,16 +224,38 @@ export default function App() {
     setSuggesting(false)
   }
 
+  function goHome() {
+    setResult(null)
+    setCompany('')
+    setError(null)
+  }
+
   const showHome = !result && !loading && !error
   const currentId = reportId(result)
   const isCurrentSaved = !!currentId && savedReports.some(r => r.id === currentId)
   const isCurrentFavorite = !!currentId && favorites.some(f => f.id === currentId)
 
   return (
-    <div className="app">
+    <>
+      {result && (
+        <div className="report-top-banner">
+          <div className="report-top-banner-inner">
+            <button className="banner-btn banner-btn-home" onClick={goHome}>← Home</button>
+            <div className="banner-actions">
+              <button className="banner-btn" onClick={saveCurrentReport}>
+                {isCurrentSaved ? 'Report Saved ✓' : 'Save Report'}
+              </button>
+              <button className="banner-btn" onClick={() => toggleFavorite({ company: result.company, ticker: result.snapshot?.ticker })}>
+                {isCurrentFavorite ? '★ Favorited' : '☆ Favorite'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="app">
       <header className="app-header">
         <h1>Insight</h1>
-        <p>AI-powered market research for any company — public or private</p>
+        <p>AI-powered market research for any company, public or private</p>
       </header>
 
       <form onSubmit={handleSubmit} className="search-form">
@@ -294,13 +316,10 @@ export default function App() {
         <Report
           data={result}
           onSearch={doSearch}
-          onSave={saveCurrentReport}
-          onToggleFavorite={() => toggleFavorite({ company: result.company, ticker: result.snapshot?.ticker })}
-          isSaved={isCurrentSaved}
-          isFavorite={isCurrentFavorite}
         />
       )}
     </div>
+    </>
   )
 }
 
@@ -352,7 +371,7 @@ function HomePage({ onSearch }) {
           </div>
           <ul className="home-feature-list">
             <li>Live web search via Tavily</li>
-            <li>Verified financial data via Yahoo Finance</li>
+            <li>Verified financial data via FMP &amp; SEC EDGAR</li>
             <li>Sources cited &amp; linked</li>
             <li>Confidence score on every report</li>
           </ul>
@@ -373,6 +392,11 @@ function HomePage({ onSearch }) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="home-disclaimer">
+        <span className="home-disclaimer-icon">ℹ️</span>
+        Insight runs on free-tier APIs and an auto-sleeping backend, so your first search may take 30–60 seconds or need a second try — that's completely normal. Results are worth the wait.
       </div>
     </div>
   )
@@ -468,7 +492,7 @@ function ResearchLibrary({ savedReports, favorites, history, open, onToggleOpen,
 
 // ─── Report ───────────────────────────────────────────────────────────────────
 
-function Report({ data, onSearch, onSave, onToggleFavorite, isSaved, isFavorite }) {
+function Report({ data, onSearch }) {
   useEffect(() => { warnRatios(data.financial_ratios) }, [data.financial_ratios])
 
   const isPrivate = data.company_type === 'private'
@@ -488,22 +512,18 @@ function Report({ data, onSearch, onSave, onToggleFavorite, isSaved, isFavorite 
               {data.snapshot?.ticker && <span className="badge badge-blue">{data.snapshot.ticker}</span>}
               {data.snapshot?.exchange && <span className="badge badge-gray">{data.snapshot.exchange}</span>}
               {data.market_size && <span className="badge badge-purple">{data.market_size}</span>}
+              <CompanyTypeBadge type={data.company_type} stage={data.stage} />
             </div>
           </div>
         </div>
         <div className="report-header-right">
           <ConfidencePill score={data.confidence_score} sources={data.sources_count} />
-          <CompanyTypeBadge type={data.company_type} stage={data.stage} />
-          <div className="report-actions">
-            <button onClick={onSave}>{isSaved ? 'Report Saved' : 'Save Report'}</button>
-            <button onClick={onToggleFavorite}>{isFavorite ? 'Favorited' : 'Favorite'}</button>
-          </div>
         </div>
       </div>
 
       <Snapshot snap={data.snapshot} />
 
-      <Section title="What's Happening Now" tag="ai">
+      <Section title="What's Happening Now" tag="OpenRouter">
         <p className="summary-text">{data.summary}</p>
       </Section>
 
@@ -540,7 +560,7 @@ function Report({ data, onSearch, onSave, onToggleFavorite, isSaved, isFavorite 
           {data.milestones?.length > 0 && <MilestoneTimeline milestones={data.milestones} />}
           <MarketTractionSection traction={data.market_traction} />
           {data.financial_summary && (
-            <Section title="Investment Commentary" tag="ai">
+            <Section title="Investment Commentary" tag="OpenRouter">
               <p className="summary-text">{data.financial_summary}</p>
             </Section>
           )}
@@ -549,13 +569,13 @@ function Report({ data, onSearch, onSave, onToggleFavorite, isSaved, isFavorite 
 
       <PositioningSection pos={data.positioning} />
 
-      <Section title="SWOT Analysis" tag="ai">
+      <Section title="SWOT Analysis" tag="OpenRouter">
         <SwotGrid swot={data.swot} />
       </Section>
 
-      <Section title="Competitive Landscape" tag="ai">
+      <Section title="Competitive Landscape" tag="OpenRouter">
         <div className="competitor-list">
-          {data.competitors.map((c, i) => (
+          {(data.competitors || []).map((c, i) => (
             <CompetitorCard key={i} c={c} onSearch={onSearch} />
           ))}
         </div>
@@ -611,7 +631,7 @@ function FundingSection({ funding }) {
   if (!hasTopLine && !hasInvestors && !hasRounds) return null
 
   return (
-    <Section title="Funding" tag="data">
+    <Section title="Funding" tag="Tavily">
       {hasTopLine && (
         <div className="snapshot-grid" style={{ marginBottom: hasInvestors || hasRounds ? 18 : 0 }}>
           {funding.total_raised && (
@@ -676,7 +696,7 @@ function GrowthSignalsSection({ signals }) {
   if (!hasData) return null
 
   return (
-    <Section title="Growth Signals" tag="data">
+    <Section title="Growth Signals" tag="Tavily">
       <div className="snapshot-grid">
         {signals.employee_count && (
           <div className="snapshot-stat">
@@ -722,7 +742,7 @@ function GrowthSignalsSection({ signals }) {
 function MilestoneTimeline({ milestones }) {
   if (!milestones?.length) return null
   return (
-    <Section title="Company Timeline" tag="ai">
+    <Section title="Company Timeline" tag="OpenRouter">
       <div className="milestone-timeline">
         {milestones.map((m, i) => (
           <div key={i} className="milestone-item">
@@ -751,7 +771,7 @@ function MarketTractionSection({ traction }) {
   const allCustomers = [...(traction.customers || []), ...(traction.enterprise_clients || [])].filter((v, i, a) => a.indexOf(v) === i)
 
   return (
-    <Section title="Market Traction" tag="data">
+    <Section title="Market Traction" tag="Tavily">
       {hasMetrics && (
         <div className="snapshot-grid" style={{ marginBottom: hasCustomers || hasPartners ? 18 : 0 }}>
           {traction.arr && (
@@ -863,7 +883,7 @@ function Snapshot({ snap }) {
   ].filter(s => s.value)
 
   return (
-    <Section title="Company Snapshot" tag="data">
+    <Section title="Company Snapshot" tag="FMP">
       <div className="snapshot-grid">
         {stats.map(s => (
           <div key={s.label} className="snapshot-stat">
@@ -1286,7 +1306,7 @@ function PositioningSection({ pos }) {
   ].filter(i => i.value)
   if (!items.length) return null
   return (
-    <Section title="Positioning" tag="ai">
+    <Section title="Positioning" tag="OpenRouter">
       <div className="positioning-list">
         {items.map(item => (
           <div key={item.label} className="positioning-item">
@@ -1542,14 +1562,18 @@ function SourcesAndNews({ sources, company }) {
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
+const _AI_TAGS = new Set(['OpenRouter'])
 function Section({ title, children, action, tag }) {
   return (
     <div className="section">
       <div className="section-header">
         <h3>
           {title}
-          {tag === 'ai'   && <span className="section-tag section-tag-ai">AI</span>}
-          {tag === 'data' && <span className="section-tag section-tag-data">Data</span>}
+          {tag && (
+            <span className={`section-tag ${_AI_TAGS.has(tag) ? 'section-tag-ai' : 'section-tag-data'}`}>
+              {tag}
+            </span>
+          )}
         </h3>
         {action && <div className="section-action">{action}</div>}
       </div>

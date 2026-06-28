@@ -475,6 +475,7 @@ def run(company: str) -> MarketAnalysis:
     # Fetch market data first — determines public vs private classification
     mdata = market_data.fetch(company)
     is_public = bool(mdata.get("ticker") and mdata.get("market_cap"))
+    print(f"[pipeline] {company}: ticker={mdata.get('ticker')}, market_cap={mdata.get('market_cap')}, is_public={is_public}", flush=True)
 
     if is_public:
         articles = search.fetch(company)
