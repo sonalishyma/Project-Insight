@@ -1,57 +1,57 @@
 import math
+import os
 import re
-from datetime import date as _date
-from datetime import datetime
+from datetime import date as _date, timedelta
 
-import pandas as pd
-import requests
-import yfinance as yf
+import httpx
 
-# Yahoo Finance blocks default Python/yfinance user-agents on cloud IPs.
-# Using a browser UA improves hit rate on hosted environments like Render.
-_YF_SESSION = requests.Session()
-_YF_SESSION.headers.update({
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://finance.yahoo.com/",
-})
+_FMP_KEY = os.environ.get("FMP_API_KEY", "")
+_FMP_BASE = "https://financialmodelingprep.com/api"
 
 _EXCHANGE_MAP = {
-    "NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ",
-    "NYQ": "NYSE", "NYE": "NYSE",
-    "PCX": "NYSE Arca",
-    "BTS": "BATS",
+    "NASDAQ": "NASDAQ", "NYSE": "NYSE", "AMEX": "AMEX",
+    "NYSE ARCA": "NYSE Arca", "BATS": "BATS",
+    "NMS": "NASDAQ", "NGM": "NASDAQ", "NYQ": "NYSE",
 }
 
-# Some companies' yfinance website doesn't match their recognizable brand domain
 _LOGO_DOMAIN_OVERRIDES = {
-    "abc.xyz": "google.com",       # Alphabet → Google
-    "meta.com": "facebook.com",    # Meta → Facebook (better logo coverage)
-    "x.com": "twitter.com",        # X / Twitter
+    "abc.xyz": "google.com",
+    "meta.com": "facebook.com",
+    "x.com": "twitter.com",
 }
 
+_client = httpx.Client(timeout=12.0, headers={"User-Agent": "Insight/1.0"})
 
-def _extract_domain(url: str) -> str:
-    return url.replace("https://", "").replace("http://", "").split("/")[0]
+
+def _fmp(path: str, _p: dict | None = None, **kwargs):
+    """Call FMP API. Use _p dict for params that clash with Python keywords (e.g. 'from')."""
+    if not _FMP_KEY:
+        return None
+    try:
+        params = {**(_p or {}), **kwargs, "apikey": _FMP_KEY}
+        r = _client.get(f"{_FMP_BASE}{path}", params=params)
+        r.raise_for_status()
+        data = r.json()
+        if isinstance(data, dict) and ("Error Message" in data or data.get("status") == "LIMIT_REACH"):
+            return None
+        return data if data else None
+    except Exception:
+        return None
 
 
 def _fmt_currency(n) -> str | None:
     try:
         n = float(n)
-        if pd.isna(n):
+        if math.isnan(n) or math.isinf(n):
             return None
     except (TypeError, ValueError):
         return None
-    if abs(n) >= 1e12:
+    abs_n = abs(n)
+    if abs_n >= 1e12:
         return f"${n / 1e12:.2f}T"
-    if abs(n) >= 1e9:
+    if abs_n >= 1e9:
         return f"${n / 1e9:.2f}B"
-    if abs(n) >= 1e6:
+    if abs_n >= 1e6:
         return f"${n / 1e6:.2f}M"
     return f"${n:.2f}"
 
@@ -59,51 +59,20 @@ def _fmt_currency(n) -> str | None:
 def _safe_float(val, decimals: int = 2) -> float | None:
     try:
         f = float(val)
-        if pd.isna(f) or math.isinf(f):
+        if math.isnan(f) or math.isinf(f):
             return None
         return round(f, decimals)
     except (TypeError, ValueError):
         return None
 
 
-def _fmt_date(val) -> str | None:
-    if val is None:
-        return None
-    if isinstance(val, (datetime, _date)):
-        return val.date().isoformat() if isinstance(val, datetime) else val.isoformat()
-    try:
-        return datetime.fromtimestamp(float(val)).date().isoformat()
-    except (TypeError, ValueError, OSError):
-        return str(val)[:10] if str(val) else None
-
-
-def _fmt_grade_action(action: str | None) -> str | None:
-    if not action:
-        return None
-    labels = {
-        "up": "Upgrade",
-        "down": "Downgrade",
-        "main": "Maintained",
-        "reit": "Reiterated",
-        "init": "Initiated",
-    }
-    return labels.get(str(action).lower(), str(action).title())
-
-
-def _find_ticker(company: str) -> str | None:
-    try:
-        results = yf.Search(company, max_results=5, session=_YF_SESSION)
-        for q in results.quotes:
-            if q.get("quoteType") == "EQUITY":
-                return q.get("symbol")
-        if results.quotes:
-            return results.quotes[0].get("symbol")
-    except Exception:
-        pass
-    return None
+def _extract_domain(url: str) -> str:
+    return url.replace("https://", "").replace("http://", "").split("/")[0]
 
 
 def _truncate_at_sentence(text: str, max_chars: int = 800) -> str:
+    if not text:
+        return ""
     if len(text) <= max_chars:
         return text
     chunk = text[:max_chars]
@@ -113,35 +82,19 @@ def _truncate_at_sentence(text: str, max_chars: int = 800) -> str:
     return chunk + "…"
 
 
-import logging as _logging
-_log = _logging.getLogger(__name__)
-
-
-def _validate_ratios(data: dict) -> None:
-    """Log warnings for values that are almost certainly unit/parsing bugs."""
-    checks = [
-        # (field, predicate, message)
-        ("dividend_yield",    lambda v: v > 15,       "Dividend yield >15% — likely a unit bug (should be in % already)"),
-        ("gross_margin",      lambda v: abs(v) > 1,   "Gross margin outside ±100% — check units (should be a fraction 0-1)"),
-        ("operating_margin",  lambda v: abs(v) > 1,   "Operating margin outside ±100%"),
-        ("net_margin",        lambda v: abs(v) > 2,   "Net margin outside ±200%"),
-        ("pe_ratio",          lambda v: v < 0 or v > 1000, "P/E negative or >1000"),
-        ("pb_ratio",          lambda v: v < 0 or v > 500,  "P/B negative or >500"),
-        ("ps_ratio",          lambda v: v < 0 or v > 500,  "P/S negative or >500"),
-        # NOTE: do NOT flag ROE or ROA — they legitimately exceed 100% for buyback-heavy firms
-    ]
-    for field, pred, msg in checks:
-        val = data.get(field)
-        if val is not None:
-            try:
-                if pred(float(val)):
-                    _log.warning("[sanity] %s=%.4f: %s", field, float(val), msg)
-            except (TypeError, ValueError):
-                pass
+def _find_ticker(company: str) -> str | None:
+    data = _fmp("/v3/search", query=company, limit=8)
+    if not isinstance(data, list) or not data:
+        return None
+    priority = {"NASDAQ", "NYSE", "AMEX", "NYSE ARCA"}
+    for item in data:
+        if item.get("exchangeShortName") in priority:
+            return item["symbol"]
+    return data[0]["symbol"]
 
 
 def fetch(company: str) -> dict:
-    result = {
+    result: dict = {
         "ticker": None, "exchange": None, "sector": None, "industry": None,
         "ceo": None, "headquarters": None, "employees": None,
         "market_cap": None, "revenue": None, "net_income": None,
@@ -157,291 +110,215 @@ def fetch(company: str) -> dict:
         "data_as_of": _date.today().isoformat(),
         "stock_history": [], "quarterly_earnings": [], "annual_data": [],
         "analyst_sentiment": None, "earnings_info": None,
+        "cik": None,
     }
 
     ticker_sym = _find_ticker(company)
     if not ticker_sym:
         return result
-
     result["ticker"] = ticker_sym
 
-    try:
-        t = yf.Ticker(ticker_sym, session=_YF_SESSION)
-        info = t.info or {}
-
-        # Exchange
-        raw_exchange = info.get("exchange", "")
-        result["exchange"] = _EXCHANGE_MAP.get(raw_exchange, raw_exchange) or None
-
-        # CEO
-        for officer in info.get("companyOfficers", []):
-            title = officer.get("title", "").lower()
-            if "chief executive" in title or " ceo" in title:
-                result["ceo"] = officer.get("name")
-                break
-
-        # Headquarters
-        parts = [info.get("city"), info.get("state"), info.get("country")]
-        hq = ", ".join(p for p in parts if p)
-        result["headquarters"] = hq or None
-
-        # Logo
-        website = info.get("website", "")
-        result["website"] = website or None
-        if website:
-            domain = _extract_domain(website).lstrip("www.")
-            domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
-            result["logo_url"] = f"https://icon.horse/icon/{domain}"
-
+    # ── Company profile ────────────────────────────────────────────────────
+    profile_list = _fmp(f"/v3/profile/{ticker_sym}")
+    if isinstance(profile_list, list) and profile_list:
+        p = profile_list[0]
+        website = p.get("website") or ""
+        domain = _extract_domain(website).lstrip("www.") if website else ""
+        domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
+        hq = ", ".join(x for x in [p.get("city"), p.get("state"), p.get("country")] if x)
         result.update({
-            "sector": info.get("sector"),
-            "industry": info.get("industry"),
-            "employees": info.get("fullTimeEmployees"),
-            "market_cap": _fmt_currency(info.get("marketCap")),
-            "revenue": _fmt_currency(info.get("totalRevenue")),
-            "net_income": _fmt_currency(info.get("netIncomeToCommon")),
-            "cash": _fmt_currency(info.get("totalCash")),
-            "total_debt": _fmt_currency(info.get("totalDebt")),
-            "pe_ratio": _safe_float(info.get("trailingPE")),
-            "pb_ratio": _safe_float(info.get("priceToBook")),
-            "ps_ratio": _safe_float(info.get("priceToSalesTrailing12Months")),
-            "ev_ebitda": _safe_float(info.get("enterpriseToEbitda")),
-            "revenue_growth": _safe_float(info.get("revenueGrowth"), 4),
-            "earnings_growth": _safe_float(info.get("earningsGrowth"), 4),
-            "gross_margin": _safe_float(info.get("grossMargins"), 4),
-            "operating_margin": _safe_float(info.get("operatingMargins"), 4),
-            "net_margin": _safe_float(info.get("profitMargins"), 4),
-            "roe": _safe_float(info.get("returnOnEquity"), 4),
-            "roa": _safe_float(info.get("returnOnAssets"), 4),
-            "eps": _safe_float(info.get("trailingEps")),
-            "fcf_formatted": _fmt_currency(info.get("freeCashflow")),
-            "current_ratio": _safe_float(info.get("currentRatio")),
-            "quick_ratio": _safe_float(info.get("quickRatio")),
+            "exchange": _EXCHANGE_MAP.get(p.get("exchangeShortName", ""), p.get("exchangeShortName")) or None,
+            "sector": p.get("sector") or None,
+            "industry": p.get("industry") or None,
+            "ceo": p.get("ceo") or None,
+            "headquarters": hq or None,
+            "employees": p.get("fullTimeEmployees") or None,
+            "market_cap": _fmt_currency(p.get("mktCap")),
+            "revenue": _fmt_currency(p.get("revenue")),
+            "pe_ratio": _safe_float(p.get("pe")),
+            "eps": _safe_float(p.get("eps")),
+            "website": website or None,
+            "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
+            "wiki_summary": _truncate_at_sentence(p.get("description") or "") or None,
+            "cik": p.get("cik") or None,
         })
 
-        recent_actions = []
-        try:
-            actions = t.upgrades_downgrades
-            if actions is not None and not actions.empty:
-                for idx, row in actions.head(5).iterrows():
-                    recent_actions.append({
-                        "date": _fmt_date(idx),
-                        "firm": row.get("Firm"),
-                        "action": _fmt_grade_action(row.get("Action")),
-                        "from_grade": row.get("FromGrade") or None,
-                        "to_grade": row.get("ToGrade") or None,
-                        "current_price_target": _safe_float(row.get("currentPriceTarget")),
-                        "prior_price_target": _safe_float(row.get("priorPriceTarget")),
-                    })
-        except Exception:
-            pass
+    # ── TTM ratios ─────────────────────────────────────────────────────────
+    ratios_list = _fmp(f"/v3/ratios-ttm/{ticker_sym}")
+    if isinstance(ratios_list, list) and ratios_list:
+        r = ratios_list[0]
+        raw_dy = r.get("dividendYieldTTM")
+        dy = _safe_float(float(raw_dy) * 100, 4) if raw_dy else None
+        result.update({
+            "pb_ratio": _safe_float(r.get("priceToBookRatioTTM")),
+            "ps_ratio": _safe_float(r.get("priceToSalesRatioTTM")),
+            "ev_ebitda": _safe_float(r.get("enterpriseValueMultipleTTM")),
+            "gross_margin": _safe_float(r.get("grossProfitMarginTTM"), 4),
+            "operating_margin": _safe_float(r.get("operatingProfitMarginTTM"), 4),
+            "net_margin": _safe_float(r.get("netProfitMarginTTM"), 4),
+            "roe": _safe_float(r.get("returnOnEquityTTM"), 4),
+            "roa": _safe_float(r.get("returnOnAssetsTTM"), 4),
+            "current_ratio": _safe_float(r.get("currentRatioTTM")),
+            "quick_ratio": _safe_float(r.get("quickRatioTTM")),
+            "debt_to_equity": _safe_float(r.get("debtEquityRatioTTM")),
+            "dividend_yield": dy,
+        })
 
-        has_analyst_data = any(info.get(k) is not None for k in [
-            "recommendationKey", "recommendationMean", "targetMeanPrice",
-            "targetMedianPrice", "targetHighPrice", "targetLowPrice",
-            "numberOfAnalystOpinions",
-        ]) or bool(recent_actions)
-        if has_analyst_data:
+    # ── Annual income statement ────────────────────────────────────────────
+    inc_annual = _fmp(f"/v3/income-statement/{ticker_sym}", period="annual", limit=5) or []
+
+    if inc_annual:
+        latest = inc_annual[0]
+        result["revenue"] = result["revenue"] or _fmt_currency(latest.get("revenue"))
+        result["net_income"] = _fmt_currency(latest.get("netIncome"))
+        result["operating_income"] = _fmt_currency(latest.get("operatingIncome"))
+        result["eps"] = result["eps"] or _safe_float(latest.get("eps"))
+
+        if len(inc_annual) >= 2:
+            r0 = float(inc_annual[0].get("revenue") or 0)
+            r1 = float(inc_annual[1].get("revenue") or 0)
+            if r1 > 0:
+                result["revenue_growth"] = _safe_float((r0 - r1) / r1, 4)
+            e0 = float(inc_annual[0].get("eps") or 0)
+            e1 = float(inc_annual[1].get("eps") or 0)
+            if e1 != 0:
+                result["earnings_growth"] = _safe_float((e0 - e1) / abs(e1), 4)
+
+    # ── Annual cash flow ───────────────────────────────────────────────────
+    cf_annual = _fmp(f"/v3/cash-flow-statement/{ticker_sym}", period="annual", limit=5) or []
+    cf_by_year: dict[str, float | None] = {}
+    for c in cf_annual:
+        year = str(c.get("date", ""))[:4]
+        fcf = c.get("freeCashFlow")
+        cf_by_year[year] = _safe_float(float(fcf) / 1e9) if fcf is not None else None
+
+    if cf_annual:
+        latest_cf = cf_annual[0]
+        result["cash"] = _fmt_currency(latest_cf.get("cashAndCashEquivalents"))
+        result["fcf_formatted"] = _fmt_currency(latest_cf.get("freeCashFlow"))
+
+    # ── Balance sheet ──────────────────────────────────────────────────────
+    bs_list = _fmp(f"/v3/balance-sheet-statement/{ticker_sym}", period="annual", limit=1)
+    if isinstance(bs_list, list) and bs_list:
+        bs = bs_list[0]
+        result["total_debt"] = _fmt_currency(bs.get("totalDebt"))
+        result["cash"] = result["cash"] or _fmt_currency(bs.get("cashAndCashEquivalents"))
+
+    # ── Annual chart data ──────────────────────────────────────────────────
+    if inc_annual:
+        annual_data = []
+        for item in reversed(inc_annual):
+            year = str(item.get("date", ""))[:4]
+            rev = item.get("revenue")
+            ni = item.get("netIncome")
+            gp = item.get("grossProfit")
+            op = item.get("operatingIncome")
+            annual_data.append({
+                "year": year,
+                "revenue": _safe_float(float(rev) / 1e9) if rev else None,
+                "net_income": _safe_float(float(ni) / 1e9) if ni else None,
+                "gross_profit": _safe_float(float(gp) / 1e9) if gp else None,
+                "operating_income": _safe_float(float(op) / 1e9) if op else None,
+                "fcf": cf_by_year.get(year),
+                "eps": _safe_float(item.get("eps")),
+            })
+        result["annual_data"] = annual_data
+
+    # ── Quarterly earnings ─────────────────────────────────────────────────
+    inc_q = _fmp(f"/v3/income-statement/{ticker_sym}", period="quarter", limit=8) or []
+    if inc_q:
+        points = []
+        for item in reversed(inc_q):
+            rev = item.get("revenue")
+            ni = item.get("netIncome")
+            points.append({
+                "quarter": str(item.get("date", ""))[:10],
+                "revenue": _safe_float(float(rev) / 1e9) if rev else None,
+                "net_income": _safe_float(float(ni) / 1e9) if ni else None,
+            })
+        result["quarterly_earnings"] = points
+
+    # ── Stock history (daily → sampled weekly) ─────────────────────────────
+    # timeseries=365 avoids the 'from' Python-keyword clash in params
+    hist = _fmp(f"/v3/historical-price-full/{ticker_sym}", timeseries=365)
+    if isinstance(hist, dict) and hist.get("historical"):
+        daily = list(reversed(hist["historical"]))  # oldest → newest
+        sampled = daily[::5]                         # ~weekly resolution
+        stock_history = []
+        prev_close = None
+        for pt in sampled:
+            close = _safe_float(pt.get("close"))
+            if close is None:
+                continue
+            change = round(close - prev_close, 2) if prev_close else 0.0
+            change_pct = round((change / prev_close) * 100, 2) if prev_close else 0.0
+            stock_history.append({
+                "date": str(pt.get("date", ""))[:10],
+                "close": close,
+                "open": _safe_float(pt.get("open")),
+                "high": _safe_float(pt.get("high")),
+                "low": _safe_float(pt.get("low")),
+                "volume": int(pt["volume"]) if pt.get("volume") else None,
+                "change": change,
+                "change_pct": change_pct,
+            })
+            prev_close = close
+        result["stock_history"] = stock_history
+
+    # ── Analyst price targets ──────────────────────────────────────────────
+    try:
+        consensus = _fmp("/v4/price-target-consensus", symbol=ticker_sym)
+        recs = _fmp(f"/v3/analyst-stock-recommendations/{ticker_sym}", limit=10) or []
+        recent_actions = [
+            {
+                "date": str(rec.get("date", ""))[:10],
+                "firm": rec.get("analystName") or rec.get("analyst") or None,
+                "action": "Maintained",
+                "from_grade": None,
+                "to_grade": rec.get("rating") or None,
+                "current_price_target": _safe_float(rec.get("priceTarget")),
+                "prior_price_target": None,
+            }
+            for rec in recs[:5]
+        ]
+        if isinstance(consensus, dict) and consensus or recent_actions:
+            c = consensus if isinstance(consensus, dict) else {}
             result["analyst_sentiment"] = {
-                "consensus": str(info.get("recommendationKey")).replace("_", " ").title() if info.get("recommendationKey") else None,
-                "recommendation_mean": _safe_float(info.get("recommendationMean")),
-                "analyst_count": info.get("numberOfAnalystOpinions"),
-                "target_mean_price": _safe_float(info.get("targetMeanPrice")),
-                "target_median_price": _safe_float(info.get("targetMedianPrice")),
-                "target_high_price": _safe_float(info.get("targetHighPrice")),
-                "target_low_price": _safe_float(info.get("targetLowPrice")),
-                "current_price": _safe_float(info.get("currentPrice")),
+                "consensus": None,
+                "recommendation_mean": None,
+                "analyst_count": len(recs) or None,
+                "target_mean_price": _safe_float(c.get("targetConsensus")),
+                "target_median_price": _safe_float(c.get("targetMedian")),
+                "target_high_price": _safe_float(c.get("targetHigh")),
+                "target_low_price": _safe_float(c.get("targetLow")),
+                "current_price": None,
                 "recent_actions": recent_actions,
                 "data_as_of": result["data_as_of"],
             }
-
-        try:
-            cal = t.calendar or {}
-        except Exception:
-            cal = {}
-
-        earnings_dates = cal.get("Earnings Date")
-        next_earnings = None
-        if isinstance(earnings_dates, list) and earnings_dates:
-            next_earnings = _fmt_date(earnings_dates[0])
-        else:
-            next_earnings = _fmt_date(info.get("earningsTimestampStart") or info.get("earningsTimestamp"))
-
-        eps_estimate = _safe_float(cal.get("Earnings Average"))
-        revenue_estimate = _fmt_currency(cal.get("Revenue Average"))
-        earnings_info = {
-            "next_earnings_date": next_earnings,
-            "previous_earnings_date": _fmt_date(info.get("earningsTimestamp")),
-            "eps_estimate": eps_estimate,
-            "eps_actual": None,
-            "eps_surprise": None,
-            "eps_surprise_pct": None,
-            "revenue_estimate": revenue_estimate,
-            "revenue_actual": None,
-            "revenue_surprise": None,
-            "revenue_surprise_pct": None,
-            "data_as_of": result["data_as_of"],
-        }
-
-        try:
-            dates = t.get_earnings_dates(limit=4)
-            if dates is not None and not dates.empty:
-                past = dates[dates.index.date <= _date.today()]
-                if not past.empty:
-                    row = past.iloc[0]
-                    earnings_info.update({
-                        "previous_earnings_date": _fmt_date(past.index[0]),
-                        "eps_estimate": _safe_float(row.get("EPS Estimate")) or earnings_info["eps_estimate"],
-                        "eps_actual": _safe_float(row.get("Reported EPS")),
-                        "eps_surprise_pct": _safe_float(row.get("Surprise(%)"), 4),
-                    })
-                    if earnings_info["eps_actual"] is not None and earnings_info["eps_estimate"] is not None:
-                        earnings_info["eps_surprise"] = _safe_float(earnings_info["eps_actual"] - earnings_info["eps_estimate"])
-        except Exception:
-            pass
-
-        if any(v is not None for k, v in earnings_info.items() if k != "data_as_of"):
-            result["earnings_info"] = earnings_info
-
-        # Dividend yield: yfinance returns this in % form (0.38 = 0.38%), not fraction (0.0038).
-        # Normalize: if the raw value looks like a fraction (< 0.20), convert to %.
-        dy_raw = info.get("dividendYield")
-        if dy_raw is not None:
-            try:
-                dy = float(dy_raw)
-                if 0 < dy < 0.20:
-                    dy *= 100
-                result["dividend_yield"] = _safe_float(dy, 4)
-            except (TypeError, ValueError):
-                pass
-
-        # Compute D/E from balance sheet rather than trusting yfinance's debtToEquity field,
-        # which is documented to return the value ×100 (inconsistent with other ratios).
-        try:
-            qbs = t.quarterly_balance_sheet
-            if qbs is not None and not qbs.empty:
-                equity_rows = [
-                    "Stockholders Equity",
-                    "Total Stockholder Equity",
-                    "Total Equity Gross Minority Interest",
-                ]
-                for row in equity_rows:
-                    if row in qbs.index:
-                        equity = float(qbs.loc[row, qbs.columns[0]])
-                        if pd.isna(equity) or abs(equity) < 1e6:
-                            result["debt_to_equity"] = None
-                        else:
-                            total_debt_raw = info.get("totalDebt")
-                            if total_debt_raw:
-                                result["debt_to_equity"] = _safe_float(float(total_debt_raw) / equity)
-                        break
-        except Exception:
-            pass
-
-        # Operating income from income statement (not directly in info)
-        try:
-            qi = t.quarterly_income_stmt
-            if qi is not None and not qi.empty and "Operating Income" in qi.index:
-                op = float(qi.loc["Operating Income", qi.columns[0]])
-                result["operating_income"] = _fmt_currency(op) if not pd.isna(op) else None
-        except Exception:
-            pass
-
-        # 1-year weekly stock history with OHLCV + change
-        hist = t.history(period="1y", interval="1wk")
-        if not hist.empty:
-            stock_history = []
-            prev_close = None
-            for idx, row in hist.iterrows():
-                close = _safe_float(row["Close"])
-                if close is None:
-                    continue
-                change = round(close - prev_close, 2) if prev_close else 0.0
-                change_pct = round((change / prev_close) * 100, 2) if prev_close else 0.0
-                stock_history.append({
-                    "date": idx.strftime("%Y-%m-%d"),
-                    "close": close,
-                    "open": _safe_float(row.get("Open")),
-                    "high": _safe_float(row.get("High")),
-                    "low": _safe_float(row.get("Low")),
-                    "volume": int(row["Volume"]) if row.get("Volume") and not pd.isna(row["Volume"]) else None,
-                    "change": change,
-                    "change_pct": change_pct,
-                })
-                prev_close = close
-            result["stock_history"] = stock_history
-
-        # Quarterly revenue + net income
-        try:
-            qi = t.quarterly_income_stmt
-            if qi is not None and not qi.empty:
-                has_rev = "Total Revenue" in qi.index
-                has_ni = "Net Income" in qi.index
-                points = []
-                for col in list(qi.columns)[:8]:
-                    rev = float(qi.loc["Total Revenue", col]) if has_rev else None
-                    ni = float(qi.loc["Net Income", col]) if has_ni else None
-                    points.append({
-                        "quarter": col.strftime("%Y-%m-%d"),
-                        "revenue": _safe_float(rev / 1e9) if rev is not None and not pd.isna(rev) else None,
-                        "net_income": _safe_float(ni / 1e9) if ni is not None and not pd.isna(ni) else None,
-                    })
-                result["quarterly_earnings"] = list(reversed(points))
-        except Exception:
-            pass
-
-        # Annual data from income statement + cashflow
-        try:
-            inc = t.income_stmt
-            cf = t.cashflow
-            shares = info.get("sharesOutstanding")
-            if inc is not None and not inc.empty:
-                annual = []
-                for col in list(inc.columns)[:5]:
-                    def _get(stmt, row):
-                        if stmt is None or row not in stmt.index:
-                            return None
-                        v = stmt.loc[row, col] if col in stmt.columns else None
-                        return float(v) if v is not None and not pd.isna(v) else None
-
-                    rev = _get(inc, "Total Revenue")
-                    ni = _get(inc, "Net Income")
-                    gp = _get(inc, "Gross Profit")
-                    op = _get(inc, "Operating Income")
-                    fcf = _get(cf, "Free Cash Flow")
-
-                    eps = None
-                    if ni is not None and shares:
-                        eps = _safe_float(ni / float(shares))
-
-                    annual.append({
-                        "year": str(col.year) if hasattr(col, "year") else str(col)[:4],
-                        "revenue": _safe_float(rev / 1e9) if rev else None,
-                        "net_income": _safe_float(ni / 1e9) if ni else None,
-                        "gross_profit": _safe_float(gp / 1e9) if gp else None,
-                        "operating_income": _safe_float(op / 1e9) if op else None,
-                        "fcf": _safe_float(fcf / 1e9) if fcf else None,
-                        "eps": eps,
-                    })
-                result["annual_data"] = list(reversed(annual))
-        except Exception:
-            pass
-
     except Exception:
         pass
 
-    _validate_ratios(result)
-
-    # Wikipedia
+    # ── Earnings surprises ─────────────────────────────────────────────────
     try:
-        import wikipediaapi
-        wiki = wikipediaapi.Wikipedia(user_agent="MarketResearchTool/1.0", language="en")
-        for query in [f"{company} Inc", f"{company} (company)", company]:
-            page = wiki.page(query)
-            if page.exists():
-                result["wiki_summary"] = _truncate_at_sentence(page.summary)
-                result["wiki_url"] = page.fullurl
-                break
+        surprises = _fmp(f"/v3/earnings-surprises/{ticker_sym}") or []
+        if isinstance(surprises, list) and surprises:
+            s = surprises[0]
+            est = _safe_float(s.get("estimatedEps"))
+            act = _safe_float(s.get("actualEps"))
+            surprise = _safe_float(float(act) - float(est)) if act is not None and est is not None else None
+            result["earnings_info"] = {
+                "next_earnings_date": None,
+                "previous_earnings_date": str(s.get("date", ""))[:10] or None,
+                "eps_estimate": est,
+                "eps_actual": act,
+                "eps_surprise": surprise,
+                "eps_surprise_pct": _safe_float(s.get("epsSurpriseDifference")),
+                "revenue_estimate": None,
+                "revenue_actual": None,
+                "revenue_surprise": None,
+                "revenue_surprise_pct": None,
+                "data_as_of": result["data_as_of"],
+            }
     except Exception:
         pass
 
@@ -449,109 +326,98 @@ def fetch(company: str) -> dict:
 
 
 def search_companies(query: str, limit: int = 6) -> list[dict]:
-    """Return lightweight company suggestions for autocomplete."""
     q = query.strip()
     if len(q) < 2:
         return []
-    try:
-        results = yf.Search(q, max_results=limit, session=_YF_SESSION)
-        suggestions = []
-        seen: set[str] = set()
-        for item in results.quotes:
-            symbol = item.get("symbol")
-            name = item.get("shortname") or item.get("longname") or item.get("name")
-            if not name or name in seen:
-                continue
-            seen.add(name)
-            suggestions.append({
-                "name": name,
-                "symbol": symbol,
-                "exchange": item.get("exchange"),
-                "quote_type": item.get("quoteType"),
-            })
-        return suggestions
-    except Exception:
-        return []
-
-
-def _logo_domain(name: str, website: str) -> str:
-    """Best domain to use for Clearbit logo lookup."""
-    if website:
-        d = _extract_domain(website).lstrip("www.")
-        if d:
-            return d
-    # Guess from company name as fallback
-    cleaned = re.sub(
-        r"\s+(Inc\.?|Corp\.?|Ltd\.?|LLC|Group|Holdings?|Technologies?|Tech|Systems?|Co\.?|Platforms?|Corporation)$",
-        "", name.strip(), flags=re.I,
-    )
-    slug = re.sub(r"[^a-z0-9]", "", cleaned.lower())
-    return f"{slug}.com" if len(slug) >= 2 else ""
+    data = _fmp("/v3/search", query=q, limit=limit) or []
+    suggestions = []
+    seen: set[str] = set()
+    for item in data:
+        name = item.get("name") or ""
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        suggestions.append({
+            "name": name,
+            "symbol": item.get("symbol"),
+            "exchange": item.get("exchangeShortName"),
+            "quote_type": "EQUITY" if item.get("exchangeShortName") else None,
+        })
+    return suggestions
 
 
 def enrich_competitor(comp: dict) -> dict:
-    """Add ticker, market cap (USD only), revenue, industry, logo to a competitor dict."""
     name = comp.get("name", "")
-    try:
-        results = yf.Search(name, max_results=5, session=_YF_SESSION)
-        for q in results.quotes:
-            if q.get("quoteType") == "EQUITY":
-                ticker_sym = q.get("symbol")
-                t = yf.Ticker(ticker_sym, session=_YF_SESSION)
-                try:
-                    info = t.info or {}
-                    currency = info.get("currency", "USD")
-                    website = info.get("website", "")
-                    domain = _logo_domain(name, website)
-                    domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
-                    # Only show market cap / revenue when denominated in USD
-                    usd = currency == "USD"
-                    return {
-                        **comp,
-                        "ticker": ticker_sym,
-                        "market_cap": _fmt_currency(info.get("marketCap")) if usd else None,
-                        "revenue": _fmt_currency(info.get("totalRevenue")) if usd else None,
-                        "industry": info.get("industry"),
-                        "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
-                    }
-                except Exception:
-                    return {**comp, "ticker": ticker_sym}
-    except Exception:
-        pass
+    data = _fmp("/v3/search", query=name, limit=5) or []
+    for item in data:
+        if item.get("exchangeShortName") in {"NASDAQ", "NYSE", "AMEX"}:
+            ticker_sym = item["symbol"]
+            profile = _fmp(f"/v3/profile/{ticker_sym}")
+            if isinstance(profile, list) and profile:
+                p = profile[0]
+                website = p.get("website") or ""
+                domain = _extract_domain(website).lstrip("www.") if website else ""
+                domain = _LOGO_DOMAIN_OVERRIDES.get(domain, domain)
+                return {
+                    **comp,
+                    "ticker": ticker_sym,
+                    "market_cap": _fmt_currency(p.get("mktCap")),
+                    "revenue": _fmt_currency(p.get("revenue")),
+                    "industry": p.get("industry"),
+                    "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
+                }
+            return {**comp, "ticker": ticker_sym}
     return comp
 
 
 def get_stock_history(ticker: str, period: str) -> list[dict]:
-    """Fetch OHLCV history for a given period. Used by the /stock endpoint."""
-    period_to_interval = {
-        "1d": "5m", "1mo": "1d", "6mo": "1d", "1y": "1wk", "5y": "1mo",
-    }
-    interval = period_to_interval.get(period, "1wk")
-    try:
-        t = yf.Ticker(ticker, session=_YF_SESSION)
-        hist = t.history(period=period, interval=interval)
-        if hist.empty:
-            return []
+    period_timeseries = {"1d": 2, "1mo": 30, "6mo": 180, "1y": 365, "5y": 1825}
+    period_sample    = {"1d": 1, "1mo": 1, "6mo": 3, "1y": 5, "5y": 20}
+
+    ts = period_timeseries.get(period, 365)
+    sample = period_sample.get(period, 5)
+
+    if period == "1d":
+        data = _fmp(f"/v3/historical-chart/5min/{ticker}") or []
         points = []
-        prev_close = None
-        fmt = "%Y-%m-%d %H:%M" if period == "1d" else "%Y-%m-%d"
-        for idx, row in hist.iterrows():
-            close = _safe_float(row["Close"])
+        for pt in list(reversed(data))[-80:]:
+            close = _safe_float(pt.get("close"))
             if close is None:
                 continue
-            change = round(close - prev_close, 2) if prev_close else 0.0
-            change_pct = round((change / prev_close) * 100, 2) if prev_close else 0.0
             points.append({
-                "date": idx.strftime(fmt),
+                "date": str(pt.get("date", "")),
                 "close": close,
-                "open": _safe_float(row.get("Open")),
-                "high": _safe_float(row.get("High")),
-                "low": _safe_float(row.get("Low")),
-                "volume": int(row["Volume"]) if row.get("Volume") and not pd.isna(row["Volume"]) else None,
-                "change": change,
-                "change_pct": change_pct,
+                "open": _safe_float(pt.get("open")),
+                "high": _safe_float(pt.get("high")),
+                "low": _safe_float(pt.get("low")),
+                "volume": int(pt["volume"]) if pt.get("volume") else None,
+                "change": 0.0, "change_pct": 0.0,
             })
-            prev_close = close
         return points
-    except Exception:
+
+    hist = _fmp(f"/v3/historical-price-full/{ticker}", timeseries=ts)
+    if not isinstance(hist, dict) or not hist.get("historical"):
         return []
+
+    daily = list(reversed(hist["historical"]))
+    sampled = daily[::sample]
+    points = []
+    prev_close = None
+    for pt in sampled:
+        close = _safe_float(pt.get("close"))
+        if close is None:
+            continue
+        change = round(close - prev_close, 2) if prev_close else 0.0
+        change_pct = round((change / prev_close) * 100, 2) if prev_close else 0.0
+        points.append({
+            "date": str(pt.get("date", ""))[:10],
+            "close": close,
+            "open": _safe_float(pt.get("open")),
+            "high": _safe_float(pt.get("high")),
+            "low": _safe_float(pt.get("low")),
+            "volume": int(pt["volume"]) if pt.get("volume") else None,
+            "change": change,
+            "change_pct": change_pct,
+        })
+        prev_close = close
+    return points
