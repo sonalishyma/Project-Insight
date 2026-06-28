@@ -97,12 +97,19 @@ function warnRatios(r) {
 }
 
 // Guess an icon.horse URL from a company name (frontend fallback for logos)
+const _LOGO_SKIP_WORDS = new Set([
+  'inc', 'corp', 'corporation', 'ltd', 'llc', 'co', 'plc', 'group',
+  'holding', 'holdings', 'technologies', 'technology', 'tech', 'electronics',
+  'system', 'systems', 'solution', 'solutions', 'service', 'services',
+  'company', 'international', 'global', 'enterprise', 'enterprises',
+  'partners', 'ventures', 'platform', 'platforms', 'industries', 'the',
+])
 function guessLogoUrl(name) {
-  const cleaned = name
-    .replace(/\s*\([^)]*\)/g, '')  // strip parentheticals: "Meta (Facebook)" → "Meta"
-    .replace(/\s+(Inc\.?|Corp\.?|Ltd\.?|LLC|Group|Holdings?|Technologies?|Tech|Systems?|Co\.?|Platforms?|Corporation)\.?\s*$/i, '')
-    .trim()
-  const slug = cleaned.toLowerCase().replace(/[^a-z0-9]/g, '')
+  // Strip parentheticals then use the first meaningful word as the domain slug
+  const withoutParens = name.replace(/\s*\([^)]*\)/g, '').trim()
+  const words = withoutParens.replace(/[^\w\s]/g, '').toLowerCase().split(/\s+/)
+    .filter(w => w.length >= 2 && !_LOGO_SKIP_WORDS.has(w))
+  const slug = words[0] || ''
   return slug.length >= 2 ? `https://icon.horse/icon/${slug}.com` : null
 }
 

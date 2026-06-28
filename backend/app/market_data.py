@@ -366,6 +366,22 @@ def search_companies(query: str, limit: int = 6) -> list[dict]:
     return suggestions
 
 
+_LOGO_SKIP_WORDS = {
+    'inc', 'corp', 'ltd', 'llc', 'co', 'plc', 'group', 'the', 'holding', 'holdings',
+    'technologies', 'technology', 'tech', 'electronics', 'corporation', 'company',
+    'international', 'global', 'systems', 'solutions', 'services', 'industries',
+    'enterprises', 'partners', 'ventures',
+}
+
+def _guess_logo(name: str) -> str | None:
+    """icon.horse URL derived from the first meaningful word of a company name."""
+    clean = re.sub(r'\s*\([^)]*\)', '', name)        # drop parentheticals
+    words = [w for w in re.sub(r'[^\w\s]', '', clean).lower().split()
+             if w not in _LOGO_SKIP_WORDS]
+    slug = words[0] if words else ''
+    return f"https://icon.horse/icon/{slug}.com" if len(slug) >= 2 else None
+
+
 def enrich_competitor(comp: dict) -> dict:
     if not isinstance(comp, dict):
         return {"name": str(comp), "note": "", "overlapping_products": []}
@@ -373,11 +389,14 @@ def enrich_competitor(comp: dict) -> dict:
     if not name:
         return comp
 
-    # FMP /search is broken for name queries — use SEC EDGAR instead
+    # Strip parentheticals before lookup: "Alphabet Inc. (Google)" → "Alphabet Inc."
+    clean_name = re.sub(r'\s*\([^)]*\)', '', name).strip()
+
     from . import edgar as _edgar
-    ticker_sym, _ = _edgar.find_ticker(name)
+    ticker_sym, _ = _edgar.find_ticker(clean_name)
     if not ticker_sym:
-        return comp
+        # Foreign / unlisted company — still try to surface a logo
+        return {**comp, "logo_url": _guess_logo(name)}
 
     profile_raw = _fmp("/profile", symbol=ticker_sym)
     if isinstance(profile_raw, list) and profile_raw:
@@ -385,7 +404,7 @@ def enrich_competitor(comp: dict) -> dict:
     elif isinstance(profile_raw, dict) and profile_raw:
         p = profile_raw
     else:
-        return {**comp, "ticker": ticker_sym}
+        return {**comp, "ticker": ticker_sym, "logo_url": _guess_logo(name)}
 
     website = p.get("website") or ""
     domain = _extract_domain(website) if website else ""
@@ -396,7 +415,7 @@ def enrich_competitor(comp: dict) -> dict:
         "market_cap": _fmt_currency(p.get("marketCap")),
         "revenue": _fmt_currency(p.get("revenue")),
         "industry": p.get("industry"),
-        "logo_url": f"https://icon.horse/icon/{domain}" if domain else None,
+        "logo_url": f"https://icon.horse/icon/{domain}" if domain else _guess_logo(name),
     }
 
 
