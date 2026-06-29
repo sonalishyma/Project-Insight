@@ -86,6 +86,48 @@ def _truncate_at_sentence(text: str, max_chars: int = 800) -> str:
     return chunk + "…"
 
 
+def _yf_search_ticker(company: str) -> str | None:
+    """
+    Search Yahoo Finance for the best-matching public company ticker.
+    Fallback when EDGAR doesn't have the company (handles subsidiaries,
+    brand names, international ADRs, and recent IPOs).
+    """
+    # Try yfinance Search class first
+    try:
+        import yfinance as yf
+        results = yf.Search(company, news_count=0, max_results=5)
+        quotes = getattr(results, "quotes", None) or []
+        for q in quotes:
+            sym = q.get("symbol", "")
+            exch = q.get("exchDisp", "")
+            # Accept US-listed equities; reject mutual funds, crypto, ADRs with dots
+            if (q.get("quoteType") == "EQUITY"
+                    and "." not in sym
+                    and len(sym) <= 6
+                    and (exch in ("NYSE", "NASDAQ", "AMEX", "NasdaqGS", "NasdaqGM", "NYSEArca")
+                         or "OTC" in exch or "Pink" in exch)):
+                print(f"[yf_search] '{company}' → {sym} ({q.get('shortname')})", flush=True)
+                return sym
+    except Exception as e:
+        print(f"[yf_search] yf.Search failed for '{company}': {e}", flush=True)
+
+    # Fallback: direct Yahoo Finance query API (no rate limit, no key)
+    try:
+        r = _client.get(
+            "https://query2.finance.yahoo.com/v1/finance/search",
+            params={"q": company, "quotesCount": 5, "newsCount": 0, "listsCount": 0},
+        )
+        for q in r.json().get("quotes", []):
+            sym = q.get("symbol", "")
+            if q.get("quoteType") == "EQUITY" and "." not in sym and len(sym) <= 5:
+                print(f"[yf_search_api] '{company}' → {sym} ({q.get('shortname')})", flush=True)
+                return sym
+    except Exception as e:
+        print(f"[yf_search_api] failed for '{company}': {e}", flush=True)
+
+    return None
+
+
 def _yf_val(df, row_name: str, col):
     """Safely extract a float from a yfinance DataFrame cell."""
     if row_name not in df.index:
@@ -116,9 +158,8 @@ def _yf_fetch(ticker_sym: str) -> dict:
     # ── Company info + ratios (single HTTP call) ─────────────────────────────
     try:
         info = yt.info or {}
-        if not info.get("regularMarketPrice") and not info.get("currentPrice") and not info.get("marketCap"):
-            print(f"[yf] no price data for {ticker_sym}", flush=True)
-            return out
+        if not info:
+            print(f"[yf] empty info for {ticker_sym}", flush=True)
 
         officers = info.get("companyOfficers") or []
         ceo = next(
@@ -323,9 +364,18 @@ def fetch(company: str) -> dict:
 
     from . import edgar as _edgar
     ticker_sym, edgar_cik = _edgar.find_ticker(company)
-    print(f"[market_data] ticker lookup for '{company}': {ticker_sym}", flush=True)
+    print(f"[market_data] EDGAR lookup for '{company}': {ticker_sym}", flush=True)
+
     if not ticker_sym:
-        return result
+        # EDGAR didn't find it. Try Yahoo Finance search — handles brand names
+        # (e.g. "Hydro Flask" → Helen of Troy), subsidiaries, international ADRs,
+        # and recently IPO'd companies not yet in EDGAR's static company list.
+        ticker_sym = _yf_search_ticker(company)
+        edgar_cik = None  # CIK not known for YF-search results
+
+    if not ticker_sym:
+        return result  # Genuinely private or unrecognizable
+
     result["ticker"] = ticker_sym
     result["cik"] = edgar_cik
 
