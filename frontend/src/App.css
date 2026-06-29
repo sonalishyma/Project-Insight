@@ -685,3 +685,9 @@ a.stat-value:hover { opacity: .65; }
   background: var(--surface-alt); border-radius: 10px;
   border: 1px dashed var(--border);
 }
+.media-error {
+  margin-top: 12px; padding: 12px 16px;
+  font-size: 0.82rem; color: #a06010;
+  background: rgba(160,96,16,.07); border-radius: 8px;
+  border: 1px solid rgba(160,96,16,.2);
+}
