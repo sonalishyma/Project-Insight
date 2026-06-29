@@ -338,6 +338,62 @@ def _yf_fetch(ticker_sym: str) -> dict:
     except Exception as e:
         print(f"[yf] cashflow failed for {ticker_sym}: {e}", flush=True)
 
+    # ── Fallback ratios derived from financial statements ───────────────────
+    # yfinance's quoteSummary API (used by yt.info) is frequently rate-limited
+    # on cloud IP ranges. When info is empty, margins / PE are null but
+    # income_stmt and cashflow still return data — compute them from there.
+    try:
+        annual = out.get("annual_data") or []
+        if annual:
+            latest = annual[-1]
+            rev_b = latest.get("revenue")        # already in $B
+            gp_b  = latest.get("gross_profit")
+            op_b  = latest.get("operating_income")
+            ni_b  = latest.get("net_income")
+
+            if rev_b and rev_b != 0:
+                if not out.get("gross_margin") and gp_b is not None:
+                    out["gross_margin"] = round(gp_b / rev_b, 4)
+                if not out.get("operating_margin") and op_b is not None:
+                    out["operating_margin"] = round(op_b / rev_b, 4)
+                if not out.get("net_margin") and ni_b is not None:
+                    out["net_margin"] = round(ni_b / rev_b, 4)
+
+            # Revenue growth year-over-year from income statement
+            if not out.get("revenue_growth") and len(annual) >= 2:
+                r_new = annual[-1].get("revenue")
+                r_old = annual[-2].get("revenue")
+                if r_new and r_old and r_old != 0:
+                    out["revenue_growth"] = round((r_new - r_old) / r_old, 4)
+
+            # Revenue / net income as formatted strings (if not set by info)
+            if not out.get("revenue") and annual[-1].get("revenue"):
+                out["revenue"] = _fmt_currency(annual[-1]["revenue"] * 1e9)
+            if not out.get("net_income") and annual[-1].get("net_income"):
+                out["net_income"] = _fmt_currency(annual[-1]["net_income"] * 1e9)
+
+        # P/E from latest stock price / EPS
+        if not out.get("pe_ratio") and out.get("eps") and out.get("stock_history"):
+            last_price = out["stock_history"][-1].get("close") if out["stock_history"] else None
+            if last_price and out["eps"] and out["eps"] > 0:
+                out["pe_ratio"] = round(last_price / out["eps"], 1)
+
+        # Market cap from price × shares if still missing
+        if not out.get("market_cap"):
+            try:
+                fi = yt.fast_info
+                mc = getattr(fi, "market_cap", None)
+                if mc:
+                    out["market_cap"] = _fmt_currency(mc)
+                if not out.get("pe_ratio"):
+                    price = getattr(fi, "last_price", None) or getattr(fi, "previous_close", None)
+                    if price and out.get("eps") and out["eps"] > 0:
+                        out["pe_ratio"] = round(price / out["eps"], 1)
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[yf] fallback ratios failed for {ticker_sym}: {e}", flush=True)
+
     # ── Analyst upgrades / downgrades (Wall Street firm ratings) ────────────
     try:
         upgrades = yt.upgrades_downgrades

@@ -533,6 +533,8 @@ function Report({ data, onSearch }) {
         <p className="summary-text">{data.summary}</p>
       </Section>
 
+      <MediaSection company={data.company} sources={data.sources} />
+
       {/* ── Public: stock + financials ── */}
       {!isPrivate && (
         <>
@@ -593,8 +595,6 @@ function Report({ data, onSearch }) {
           ))}
         </div>
       </Section>
-
-      <MediaSection company={data.company} sources={data.sources} />
 
       <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
     </div>
@@ -1835,15 +1835,20 @@ function InfluencerCard({ src, hit }) {
 function MediaSection({ company, sources }) {
   const [mediaData, setMediaData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('coverage')
+  const [fetchError, setFetchError] = useState(false)
+  const [activeTab, setActiveTab] = useState('community')
 
   useEffect(() => {
     setLoading(true)
     setMediaData(null)
+    setFetchError(false)
     fetch(`${BACKEND}/media/${encodeURIComponent(company)}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then(d => { setMediaData(d); setLoading(false) })
-      .catch(() => { setMediaData({}); setLoading(false) })
+      .catch(() => { setFetchError(true); setMediaData({}); setLoading(false) })
   }, [company])
 
   const registry = mediaData?.registry?.tiers || {}
@@ -1877,7 +1882,13 @@ function MediaSection({ company, sources }) {
 
       {loading && (
         <div className="news-loading" style={{ marginTop: 16 }}>
-          <div className="spinner small" /><span>Scanning sources…</span>
+          <div className="spinner small" /><span>Scanning media sources for {company}…</span>
+        </div>
+      )}
+
+      {!loading && fetchError && (
+        <div className="media-error">
+          Could not load live media data — use the search links below to explore coverage manually.
         </div>
       )}
 
@@ -1954,8 +1965,10 @@ function MediaSection({ company, sources }) {
             </div>
           )}
 
-          {hnPosts.length === 0 && redditPosts.length === 0 && (
-            <div className="media-empty">No community discussions found for "{company}". Try the platform search links above.</div>
+          {hnPosts.length === 0 && redditPosts.length === 0 && !fetchError && (
+            <div className="media-empty" style={{ marginTop: 16 }}>
+              No community discussions indexed yet for "{company}". Use the search links above to explore directly.
+            </div>
           )}
         </div>
       )}
