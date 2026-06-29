@@ -57,7 +57,9 @@ def debug_market(company: str = Query(default="Nike")):
         "fmp_market_cap": mdata.get("market_cap"),
         "fmp_exchange": mdata.get("exchange"),
         "fmp_sector": mdata.get("sector"),
-        "is_public": bool(mdata.get("ticker") and mdata.get("market_cap")),
+        "is_public": bool(mdata.get("ticker") and (
+            mdata.get("market_cap") or mdata.get("stock_history") or mdata.get("annual_data")
+        )),
         "logo_url": mdata.get("logo_url"),
         "ticker_in_result": mdata.get("ticker"),
     }
