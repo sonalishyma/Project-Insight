@@ -4,6 +4,7 @@ the business description from the latest 10-K for public companies.
 No API key required; SEC requires a descriptive User-Agent.
 """
 
+import difflib
 import re
 import httpx
 
@@ -260,6 +261,12 @@ def find_ticker(company: str) -> tuple[str, str] | tuple[None, None]:
         candidates = [(key, val) for key, kw, val in key_words_map if word_set <= kw]
         if candidates:
             return min(candidates, key=lambda kv: len(kv[0]))[1]
+
+    # Stage 4: fuzzy match — last resort to handle single-character typos
+    # (e.g. "NetIflix" → "netflix", "Microsft" → "microsoft")
+    close = difflib.get_close_matches(q, name_map.keys(), n=1, cutoff=0.85)
+    if close:
+        return name_map[close[0]]
 
     return None, None
 

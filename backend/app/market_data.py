@@ -110,7 +110,7 @@ def fetch(company: str) -> dict:
         "data_as_of": _date.today().isoformat(),
         "stock_history": [], "quarterly_earnings": [], "annual_data": [],
         "analyst_sentiment": None, "earnings_info": None,
-        "cik": None,
+        "cik": None, "company_name": None,
     }
 
     from . import edgar as _edgar
@@ -139,6 +139,7 @@ def fetch(company: str) -> dict:
         hq = ", ".join(x for x in [p.get("city"), p.get("state"), p.get("country")] if x)
         emp_raw = p.get("fullTimeEmployees")
         result.update({
+            "company_name": p.get("companyName") or None,
             "exchange": p.get("exchange") or None,
             "sector": p.get("sector") or None,
             "industry": p.get("industry") or None,

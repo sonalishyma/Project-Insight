@@ -481,9 +481,12 @@ def run(company: str) -> MarketAnalysis:
     is_public = bool(mdata.get("ticker") and mdata.get("market_cap"))
     print(f"[pipeline] {company}: ticker={mdata.get('ticker')}, market_cap={mdata.get('market_cap')}, is_public={is_public}", flush=True)
 
+    # Use FMP's official company name when available (corrects typos like "NetIflix" → "Netflix, Inc.")
+    display_name = mdata.get("company_name") or company
+
     if is_public:
-        articles = search.fetch(company)
-        return _run_public(company, client, mdata, articles)
+        articles = search.fetch(display_name)
+        return _run_public(display_name, client, mdata, articles)
     else:
         articles = search.fetch_private(company)
         return _run_private(company, client, mdata, articles)
