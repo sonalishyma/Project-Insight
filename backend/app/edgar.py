@@ -172,12 +172,10 @@ _TICKER_OVERRIDES: dict[str, str] = {
     "constellation brands": "STZ",        # EDGAR "constellation" → CEG (different company)
     "constellation brands inc": "STZ",
     # ── International companies (ADR tickers on US exchanges) ──
+    # East Asia
     "samsung": "SSNLF",                  # Samsung KRX → US OTC ADR
     "samsung electronics": "SSNLF",
     "samsung electronics co": "SSNLF",
-    "lvmh": "LVMUY",                     # LVMH Moët Hennessy US OTC ADR
-    "lvmh moet hennessy": "LVMUY",
-    "lvmh moet hennessy louis vuitton": "LVMUY",
     "nintendo": "NTDOY",                 # Nintendo US OTC ADR
     "nintendo co": "NTDOY",
     "toyota": "TM",                      # Toyota NYSE ADR
@@ -191,31 +189,149 @@ _TICKER_OVERRIDES: dict[str, str] = {
     "alibaba group holding": "BABA",
     "tencent": "TCEHY",                  # Tencent US OTC ADR
     "tencent holdings": "TCEHY",
-    "nestle": "NSRGY",                   # Nestle US OTC ADR
-    "asml": "ASML",                      # ASML NASDAQ
-    "asml holding": "ASML",
     "tsmc": "TSM",                       # TSMC NYSE ADR
     "taiwan semiconductor": "TSM",
     "taiwan semiconductor manufacturing": "TSM",
+    "hyundai": "HYMTF",                  # Hyundai Motor US OTC ADR
+    "hyundai motor": "HYMTF",
+    "hyundai motor co": "HYMTF",
+    "lg": "LGENY",                       # LG Electronics US OTC ADR
+    "lg electronics": "LGENY",
+    "xiaomi": "XIACY",                   # Xiaomi US OTC ADR
+    "baidu": "BIDU",                     # Baidu NASDAQ ADR
+    "baidu inc": "BIDU",
+    "jd com": "JD",                      # JD.com NASDAQ ADR
+    "jd": "JD",
+    "pinduoduo": "PDD",                  # PDD Holdings NASDAQ
+    # Europe — Luxury & Fashion
+    "lvmh": "LVMUY",                     # LVMH Moët Hennessy US OTC ADR
+    "lvmh moet hennessy": "LVMUY",
+    "lvmh moet hennessy louis vuitton": "LVMUY",
+    "louis vuitton": "LVMUY",            # LVMH subsidiary
+    "dior": "LVMUY",                     # LVMH subsidiary
+    "adidas": "ADDYY",                   # Adidas AG US OTC ADR
+    "adidas ag": "ADDYY",
+    "puma": "PUMSY",                     # Puma SE US OTC ADR
+    "puma se": "PUMSY",
+    "hugo boss": "BOSSY",                # Hugo Boss US OTC ADR
+    "hugo boss ag": "BOSSY",
+    "hermes": "HESAY",                   # Hermès International US OTC ADR
+    "hermes international": "HESAY",
+    "kering": "PPRUY",                   # Kering SA US OTC ADR (Gucci, Balenciaga, YSL)
+    "gucci": "PPRUY",                    # Kering subsidiary
+    "balenciaga": "PPRUY",               # Kering subsidiary
+    "yves saint laurent": "PPRUY",       # Kering subsidiary
+    "loreal": "LRLCY",                   # L'Oréal US OTC ADR
+    "l oreal": "LRLCY",
+    "loreal sa": "LRLCY",
+    "burberry": "BURBY",                 # Burberry US OTC ADR
+    "burberry group": "BURBY",
+    "zara": "IDEXY",                     # Inditex US OTC ADR
+    "inditex": "IDEXY",
+    "h m": "HNNMY",                      # H&M US OTC ADR (& → space)
+    "hennes mauritz": "HNNMY",
+    "prada": "PRDSY",                    # Prada US OTC ADR
+    "prada spa": "PRDSY",
+    "richemont": "CFRUY",                # Richemont US OTC ADR (Cartier, IWC, Van Cleef)
+    "cartier": "CFRUY",                  # Richemont subsidiary
+    "ferragamo": "SFRGF",                # Ferragamo US OTC ADR
+    # Europe — Automotive
     "volkswagen": "VWAGY",               # Volkswagen US OTC ADR
     "volkswagen ag": "VWAGY",
+    "bmw": "BMWYY",                      # BMW US OTC ADR
+    "bmw ag": "BMWYY",
+    "bayerische motoren werke": "BMWYY",
+    "mercedes": "MBGYY",                 # Mercedes-Benz US OTC ADR
+    "mercedes benz": "MBGYY",
+    "mercedes benz group": "MBGYY",
+    "daimler": "MBGYY",                  # Daimler renamed to Mercedes-Benz Group
+    "porsche": "POAHY",                  # Porsche AG US OTC ADR
+    "porsche ag": "POAHY",
+    "ferrari": "RACE",                   # Ferrari NYSE
+    "ferrari nv": "RACE",
+    "stellantis": "STLA",                # Stellantis NYSE (Fiat, Chrysler, Jeep, Peugeot)
+    "stellantis nv": "STLA",
+    "fiat": "STLA",                      # Stellantis brand
+    "jeep": "STLA",                      # Stellantis brand
+    "renault": "RNSDY",                  # Renault US OTC ADR
+    "renault sa": "RNSDY",
+    "volvo": "VLVLY",                    # Volvo US OTC ADR
+    "airbus": "EADSY",                   # Airbus US OTC ADR
+    "airbus se": "EADSY",
+    "rolls royce": "RYCEY",              # Rolls-Royce US OTC ADR
+    "rolls royce holdings": "RYCEY",
+    # Europe — Tech / Industrials
     "siemens": "SIEGY",                  # Siemens US OTC ADR
     "siemens ag": "SIEGY",
     "sap": "SAP",                        # SAP NYSE ADR
     "sap se": "SAP",
+    "asml": "ASML",                      # ASML NASDAQ
+    "asml holding": "ASML",
+    "philips": "PHG",                    # Philips NYSE ADR
+    "koninklijke philips": "PHG",
+    "abb": "ABB",                        # ABB NYSE ADR
+    "abb ltd": "ABB",
+    # Europe — Pharma / Life Sciences
     "novo nordisk": "NVO",               # Novo Nordisk NYSE ADR
+    "novartis": "NVS",                   # Novartis NYSE ADR
+    "novartis ag": "NVS",
+    "roche": "RHHBY",                    # Roche US OTC ADR
+    "roche holding": "RHHBY",
+    "astrazeneca": "AZN",                # AstraZeneca NASDAQ ADR
+    "astrazeneca plc": "AZN",
+    "gsk": "GSK",                        # GSK NYSE ADR
+    "glaxosmithkline": "GSK",
+    "bayer": "BAYRY",                    # Bayer US OTC ADR
+    "bayer ag": "BAYRY",
+    "basf": "BASFY",                     # BASF US OTC ADR
+    "basf se": "BASFY",
+    "sanofi": "SNY",                     # Sanofi NASDAQ ADR
+    "sanofi sa": "SNY",
+    # Europe — Consumer / Energy / Finance
+    "nestle": "NSRGY",                   # Nestle US OTC ADR
+    "heineken": "HEINY",                 # Heineken US OTC ADR
+    "heineken nv": "HEINY",
+    "diageo": "DEO",                     # Diageo NYSE ADR
+    "diageo plc": "DEO",
+    "ab inbev": "BUD",                   # Anheuser-Busch InBev NYSE ADR
+    "anheuser busch inbev": "BUD",
+    "anheuser busch": "BUD",
+    "danone": "DANOY",                   # Danone US OTC ADR
+    "danone sa": "DANOY",
     "shell": "SHEL",                     # Shell NYSE ADR
     "shell plc": "SHEL",
     "bp": "BP",                          # BP NYSE ADR
     "bp plc": "BP",
+    "totalenergies": "TTE",              # TotalEnergies NYSE ADR
+    "total": "TTE",
     "rio tinto": "RIO",                  # Rio Tinto NYSE ADR
     "rio tinto plc": "RIO",
+    "bhp": "BHP",                        # BHP NYSE ADR
+    "bhp group": "BHP",
     "unilever": "UL",                    # Unilever NYSE ADR
     "unilever plc": "UL",
-    "spotify": "SPOT",                   # Spotify NYSE (Swedish company)
-    "spotify technology": "SPOT",
+    "reckitt": "RBGLY",                  # Reckitt Benckiser US OTC ADR
+    "reckitt benckiser": "RBGLY",
+    "ubs": "UBS",                        # UBS NYSE ADR
+    "ubs group": "UBS",
+    "credit suisse": "CS",               # Credit Suisse NYSE ADR (acquired by UBS 2023)
+    "hsbc": "HSBC",                      # HSBC NYSE ADR
+    "hsbc holdings": "HSBC",
+    "barclays": "BCS",                   # Barclays NYSE ADR
+    "barclays plc": "BCS",
+    "allianz": "AZSEY",                  # Allianz US OTC ADR
+    "allianz se": "AZSEY",
+    "deutsche bank": "DB",               # Deutsche Bank NYSE ADR
+    "deutsche bank ag": "DB",
+    # Canada / Australia / other
     "shopify": "SHOP",                   # Shopify NYSE (Canadian)
     "shopify inc": "SHOP",
+    "spotify": "SPOT",                   # Spotify NYSE (Swedish)
+    "spotify technology": "SPOT",
+    "atlassian": "TEAM",                 # Atlassian NASDAQ (Australian)
+    "atlassian corp": "TEAM",
+    "lululemon": "LULU",                 # Lululemon NASDAQ (Canadian-founded)
+    "lululemon athletica": "LULU",
 }
 
 

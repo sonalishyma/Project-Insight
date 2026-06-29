@@ -478,8 +478,24 @@ def run(company: str) -> MarketAnalysis:
 
     # Fetch market data first — determines public vs private classification
     mdata = market_data.fetch(company)
-    is_public = bool(mdata.get("ticker") and mdata.get("market_cap"))
-    print(f"[pipeline] {company}: ticker={mdata.get('ticker')}, market_cap={mdata.get('market_cap')}, is_public={is_public}", flush=True)
+    # A company is public if we found a ticker AND have ANY financial evidence
+    # (market_cap, stock price history, or income statement data).
+    # market_cap alone can be None when Yahoo Finance's quoteSummary API is
+    # rate-limited on cloud IPs — stock_history and annual_data use different
+    # endpoints that remain accessible, so they serve as reliable fallbacks.
+    _ticker = mdata.get("ticker")
+    _has_data = bool(
+        mdata.get("market_cap")
+        or mdata.get("stock_history")
+        or mdata.get("annual_data")
+    )
+    is_public = bool(_ticker and _has_data)
+    print(
+        f"[pipeline] {company}: ticker={_ticker}, market_cap={mdata.get('market_cap')}, "
+        f"has_stock_history={bool(mdata.get('stock_history'))}, "
+        f"has_annual_data={bool(mdata.get('annual_data'))}, is_public={is_public}",
+        flush=True,
+    )
 
     # Use FMP's official company name when available (corrects typos like "NetIflix" → "Netflix, Inc.")
     display_name = mdata.get("company_name") or company
