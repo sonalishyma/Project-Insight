@@ -338,6 +338,36 @@ def _yf_fetch(ticker_sym: str) -> dict:
     except Exception as e:
         print(f"[yf] cashflow failed for {ticker_sym}: {e}", flush=True)
 
+    # ── Analyst upgrades / downgrades (Wall Street firm ratings) ────────────
+    try:
+        upgrades = yt.upgrades_downgrades
+        if upgrades is not None and not upgrades.empty:
+            df = upgrades.reset_index()
+            actions = []
+            for _, row in df.head(15).iterrows():
+                gd = row.get("GradeDate")
+                date_str = str(gd)[:10] if gd is not None else None
+                firm = row.get("Firm") or ""
+                if not firm:
+                    continue
+                action_raw = (row.get("Action") or "").lower()
+                actions.append({
+                    "date": date_str,
+                    "firm": firm,
+                    "from_grade": row.get("FromGrade") or None,
+                    "to_grade": row.get("ToGrade") or None,
+                    "action": action_raw or None,
+                    "current_price_target": None,
+                    "prior_price_target": None,
+                })
+            if actions:
+                if isinstance(out.get("analyst_sentiment"), dict):
+                    out["analyst_sentiment"]["recent_actions"] = actions
+                else:
+                    out.setdefault("analyst_sentiment", {})["recent_actions"] = actions
+    except Exception as e:
+        print(f"[yf] upgrades failed for {ticker_sym}: {e}", flush=True)
+
     print(f"[yf] fetched {ticker_sym}: market_cap={out.get('market_cap')}, history_pts={len(out.get('stock_history', []))}", flush=True)
     return out
 
@@ -503,6 +533,36 @@ def enrich_competitor(comp: dict) -> dict:
         "industry": p.get("industry"),
         "logo_url": f"https://icon.horse/icon/{domain}" if domain else _guess_logo(name),
     }
+
+
+def get_yf_news(ticker: str) -> list[dict]:
+    """Fetch recent news articles from Yahoo Finance for a ticker (no API key)."""
+    try:
+        import yfinance as yf
+        from datetime import datetime
+        yt = yf.Ticker(ticker)
+        raw = yt.news or []
+        items = []
+        for n in raw[:20]:
+            # yfinance news structure varies by version
+            title = (n.get("title") or "").strip()
+            url = n.get("link") or n.get("url") or ""
+            if not title or not url:
+                continue
+            ts = n.get("providerPublishTime")
+            date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%S") if ts else None
+            publisher = n.get("publisher") or n.get("source") or ""
+            items.append({
+                "title": title,
+                "url": url,
+                "date": date_str,
+                "publisher": publisher,
+                "snippet": "",
+            })
+        return items
+    except Exception as e:
+        print(f"[yf_news] failed for {ticker}: {e}", flush=True)
+        return []
 
 
 def get_stock_history(ticker: str, period: str) -> list[dict]:
