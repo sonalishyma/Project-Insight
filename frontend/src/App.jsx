@@ -533,7 +533,19 @@ function Report({ data, onSearch }) {
         <p className="summary-text">{data.summary}</p>
       </Section>
 
-      <MediaSection company={data.company} sources={data.sources} />
+      {/* ── Recent news & research sources ── */}
+      <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
+
+      {/* ── Competitive landscape ── */}
+      {(data.competitors || []).length > 0 && (
+        <Section title="Competitive Landscape" tag="OpenRouter">
+          <div className="competitor-list">
+            {data.competitors.map((c, i) => (
+              <CompetitorCard key={i} c={c} onSearch={onSearch} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* ── Public: stock + financials ── */}
       {!isPrivate && (
@@ -587,16 +599,6 @@ function Report({ data, onSearch }) {
       <Section title="SWOT Analysis" tag="OpenRouter">
         <SwotGrid swot={data.swot} />
       </Section>
-
-      <Section title="Competitive Landscape" tag="OpenRouter">
-        <div className="competitor-list">
-          {(data.competitors || []).map((c, i) => (
-            <CompetitorCard key={i} c={c} onSearch={onSearch} />
-          ))}
-        </div>
-      </Section>
-
-      <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
     </div>
   )
 }
@@ -1744,273 +1746,7 @@ function MarketVoices({ ticker, analystActions }) {
   )
 }
 
-// ─── Media & Public Opinion ───────────────────────────────────────────────────
 
-const COMMUNITY_ICONS = {
-  reddit: '🟠',
-  hn:     '🟧',
-  x:      '✕',
-  linkedin:'💼',
-  github: '⚙️',
-  ph:     '🐱',
-  so:     '📚',
-}
-
-function HNPost({ post }) {
-  return (
-    <div className="discussion-post">
-      <div className="discussion-post-meta">
-        <span className="discussion-pts">{post.points?.toLocaleString()} pts</span>
-        <span className="discussion-comments">{post.comments?.toLocaleString()} comments</span>
-        {post.date && <span className="discussion-date">{post.date}</span>}
-      </div>
-      <a href={post.url} target="_blank" rel="noreferrer" className="discussion-title">
-        {post.title}
-      </a>
-      {post.hn_url !== post.url && (
-        <a href={post.hn_url} target="_blank" rel="noreferrer" className="discussion-thread-link">
-          View HN Discussion →
-        </a>
-      )}
-    </div>
-  )
-}
-
-function RedditPost({ post }) {
-  const ratio = post.upvote_ratio != null ? Math.round(post.upvote_ratio * 100) : null
-  return (
-    <div className="discussion-post">
-      <div className="discussion-post-meta">
-        <span className="discussion-pts">{post.score?.toLocaleString()} pts</span>
-        {ratio != null && <span className="discussion-ratio">{ratio}% upvoted</span>}
-        <span className="discussion-comments">{post.comments?.toLocaleString()} comments</span>
-        <span className="discussion-sub">r/{post.subreddit}</span>
-        {post.date && <span className="discussion-date">{post.date}</span>}
-      </div>
-      <a href={post.url} target="_blank" rel="noreferrer" className="discussion-title">
-        {post.title}
-      </a>
-    </div>
-  )
-}
-
-function SourceChip({ src, hit }) {
-  const hasHit = !!hit
-  return (
-    <a
-      href={src.search_url}
-      target="_blank"
-      rel="noreferrer"
-      className={`source-chip ${hasHit ? 'source-chip-hit' : ''}`}
-      title={hasHit ? `${hit.count} article${hit.count > 1 ? 's' : ''} found` : `Search ${src.name}`}
-    >
-      <span className="source-chip-name">{src.name}</span>
-      {hasHit && <span className="source-chip-count">{hit.count}</span>}
-      <span className="source-chip-arrow">↗</span>
-    </a>
-  )
-}
-
-function InfluencerCard({ src, hit }) {
-  const initials = src.name.split(' ').map(w => w[0]).join('').slice(0, 2)
-  const xUrl = src.handle ? `https://x.com/${src.handle.replace('@', '')}` : null
-  const blogUrl = src.search_url  // direct homepage, no company injection
-  return (
-    <div className={`influencer-card ${hit ? 'influencer-card-hit' : ''}`}>
-      <div className="influencer-avatar">{initials}</div>
-      <div className="influencer-info">
-        <div className="influencer-name">{src.name}</div>
-        <div className="influencer-platform">{src.handle || src.domain}</div>
-      </div>
-      <div className="influencer-links">
-        {xUrl && (
-          <a href={xUrl} target="_blank" rel="noreferrer" className="influencer-btn influencer-x-btn" title="X / Twitter">
-            𝕏
-          </a>
-        )}
-        <a href={blogUrl} target="_blank" rel="noreferrer" className="influencer-btn influencer-blog-btn" title={src.domain}>
-          ↗
-        </a>
-      </div>
-    </div>
-  )
-}
-
-function MediaSection({ company, sources }) {
-  const [mediaData, setMediaData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(false)
-  const [activeTab, setActiveTab] = useState('community')
-
-  useEffect(() => {
-    setLoading(true)
-    setMediaData(null)
-    setFetchError(false)
-    fetch(`${BACKEND}/media/${encodeURIComponent(company)}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then(d => { setMediaData(d); setLoading(false) })
-      .catch(() => { setFetchError(true); setMediaData({}); setLoading(false) })
-  }, [company])
-
-  const registry = mediaData?.registry?.tiers || {}
-  const community = mediaData?.registry?.community || []
-  const sourceHits = mediaData?.source_hits || {}
-  const hnPosts = mediaData?.hn_posts || []
-  const redditPosts = mediaData?.reddit_posts || []
-
-  const TABS = [
-    { key: 'coverage', label: '📰 Coverage' },
-    { key: 'community', label: '💬 Community' },
-    { key: 'voices', label: '👤 Voices' },
-  ]
-
-  const tierOrder = ['tier1', 'tier2', 'tier3', 'tier4', 'tier5']
-
-  return (
-    <Section title="Media & Public Opinion">
-      {/* Tab bar */}
-      <div className="media-tabs">
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            className={`media-tab ${activeTab === t.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {loading && (
-        <div className="news-loading" style={{ marginTop: 16 }}>
-          <div className="spinner small" /><span>Scanning media sources for {company}…</span>
-        </div>
-      )}
-
-      {!loading && fetchError && (
-        <div className="media-error">
-          Could not load live media data — use the search links below to explore coverage manually.
-        </div>
-      )}
-
-      {/* ── Coverage tab ── */}
-      {!loading && activeTab === 'coverage' && (
-        <div className="media-coverage">
-          {tierOrder.map(tierKey => {
-            const tier = registry[tierKey]
-            if (!tier) return null
-            const hitCount = tier.sources?.filter(s => sourceHits[s.domain]).length || 0
-            return (
-              <div key={tierKey} className="media-tier">
-                <div className="media-tier-header">
-                  <span className="media-tier-emoji">{tier.emoji}</span>
-                  <span className="media-tier-label">{tier.label}</span>
-                  {hitCount > 0 && (
-                    <span className="media-tier-hit-badge">{hitCount} source{hitCount > 1 ? 's' : ''} cited</span>
-                  )}
-                </div>
-                <div className="source-chips">
-                  {tier.sources?.map((src, i) => (
-                    <SourceChip key={i} src={src} hit={sourceHits[src.domain]} />
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ── Community tab ── */}
-      {!loading && activeTab === 'community' && (
-        <div className="media-community">
-
-          {/* Community platform links */}
-          <div className="subsection-label" style={{ marginBottom: 12 }}>Search Platforms</div>
-          <div className="community-platform-row">
-            {community.map((p, i) => (
-              <a
-                key={i}
-                href={p.search_url}
-                target="_blank"
-                rel="noreferrer"
-                className="community-platform-chip"
-              >
-                <span className="community-icon">{COMMUNITY_ICONS[p.icon] || '🔗'}</span>
-                <span>{p.name}</span>
-                <span className="source-chip-arrow">↗</span>
-              </a>
-            ))}
-          </div>
-
-          {/* HN posts */}
-          {hnPosts.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div className="subsection-label" style={{ marginBottom: 12 }}>
-                🟧 Hacker News — {hnPosts.length} discussion{hnPosts.length > 1 ? 's' : ''} found
-              </div>
-              <div className="discussion-list">
-                {hnPosts.map((p, i) => <HNPost key={i} post={p} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Reddit posts */}
-          {redditPosts.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div className="subsection-label" style={{ marginBottom: 12 }}>
-                🟠 Reddit — {redditPosts.length} post{redditPosts.length > 1 ? 's' : ''} found
-              </div>
-              <div className="discussion-list">
-                {redditPosts.map((p, i) => <RedditPost key={i} post={p} />)}
-              </div>
-            </div>
-          )}
-
-          {hnPosts.length === 0 && redditPosts.length === 0 && !fetchError && (
-            <div className="media-empty" style={{ marginTop: 16 }}>
-              No community discussions indexed yet for "{company}". Use the search links above to explore directly.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Voices tab ── */}
-      {!loading && activeTab === 'voices' && (
-        <div className="media-voices">
-          <div className="subsection-label" style={{ marginBottom: 16 }}>
-            Analysts &amp; Thought Leaders
-          </div>
-          <div className="influencer-grid">
-            {(registry['tier5']?.sources || []).map((src, i) => (
-              <InfluencerCard key={i} src={src} hit={sourceHits[src.domain]} />
-            ))}
-          </div>
-
-          <div className="subsection-label" style={{ margin: '24px 0 16px' }}>
-            Podcasts &amp; Long-Form
-          </div>
-          <div className="source-chips">
-            {(registry['tier4']?.sources || []).map((src, i) => (
-              <SourceChip key={i} src={src} hit={sourceHits[src.domain]} />
-            ))}
-          </div>
-
-          <div className="subsection-label" style={{ margin: '24px 0 16px' }}>
-            Venture Capital — firm perspectives on {company}
-          </div>
-          <div className="source-chips">
-            {(registry['tier3']?.sources || []).map((src, i) => (
-              <SourceChip key={i} src={src} hit={sourceHits[src.domain]} />
-            ))}
-          </div>
-        </div>
-      )}
-    </Section>
-  )
-}
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
