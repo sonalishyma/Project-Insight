@@ -527,13 +527,13 @@ function Report({ data, onSearch }) {
         </div>
       </div>
 
+      {/* 1. Company Snapshot */}
       <Snapshot snap={data.snapshot} />
 
-      <Section title="What's Happening Now" tag="OpenRouter">
-        <p className="summary-text">{data.summary}</p>
-      </Section>
+      {/* 2. Positioning */}
+      <PositioningSection pos={data.positioning} />
 
-      {/* ── Public: stock + financials ── */}
+      {/* 3. Financial data */}
       {!isPrivate && (
         <>
           <StockChart initialData={data.stock_history} ticker={data.snapshot?.ticker} />
@@ -554,10 +554,15 @@ function Report({ data, onSearch }) {
             </>
           )}
           {data.quarterly_earnings?.length > 0 && <QuarterlyChart data={data.quarterly_earnings} />}
+          {data.snapshot?.ticker && (
+            <MarketVoices
+              ticker={data.snapshot.ticker}
+              analystActions={data.analyst_sentiment?.recent_actions}
+            />
+          )}
         </>
       )}
 
-      {/* ── Private: funding + growth + milestones + traction ── */}
       {isPrivate && (
         <>
           <PrivateFinancialNote />
@@ -573,19 +578,17 @@ function Report({ data, onSearch }) {
         </>
       )}
 
-      {!isPrivate && data.snapshot?.ticker && (
-        <MarketVoices
-          ticker={data.snapshot.ticker}
-          analystActions={data.analyst_sentiment?.recent_actions}
-        />
-      )}
-
-      <PositioningSection pos={data.positioning} />
-
+      {/* 4. SWOT Analysis */}
       <Section title="SWOT Analysis" tag="OpenRouter">
         <SwotGrid swot={data.swot} />
       </Section>
 
+      {/* 5. What's Happening Now */}
+      <Section title="What's Happening Now" tag="OpenRouter">
+        <p className="summary-text">{data.summary}</p>
+      </Section>
+
+      {/* 6. Competitive Landscape */}
       {(data.competitors || []).length > 0 && (
         <Section title="Competitive Landscape" tag="OpenRouter">
           <div className="competitor-list">
@@ -596,6 +599,7 @@ function Report({ data, onSearch }) {
         </Section>
       )}
 
+      {/* 7. News & Sources */}
       <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
     </div>
   )
