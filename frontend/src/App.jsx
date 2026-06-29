@@ -1812,23 +1812,27 @@ function SourceChip({ src, hit }) {
 }
 
 function InfluencerCard({ src, hit }) {
+  const initials = src.name.split(' ').map(w => w[0]).join('').slice(0, 2)
+  const xUrl = src.handle ? `https://x.com/${src.handle.replace('@', '')}` : null
+  const blogUrl = src.search_url  // direct homepage, no company injection
   return (
-    <a
-      href={src.search_url}
-      target="_blank"
-      rel="noreferrer"
-      className={`influencer-card ${hit ? 'influencer-card-hit' : ''}`}
-    >
-      <div className="influencer-avatar">{src.name.split(' ').map(w => w[0]).join('').slice(0, 2)}</div>
+    <div className={`influencer-card ${hit ? 'influencer-card-hit' : ''}`}>
+      <div className="influencer-avatar">{initials}</div>
       <div className="influencer-info">
         <div className="influencer-name">{src.name}</div>
         <div className="influencer-platform">{src.handle || src.domain}</div>
       </div>
-      <div className="influencer-action">
-        {hit ? <span className="influencer-found">{hit.count} post{hit.count > 1 ? 's' : ''}</span> : null}
-        <span className="influencer-link-arrow">↗</span>
+      <div className="influencer-links">
+        {xUrl && (
+          <a href={xUrl} target="_blank" rel="noreferrer" className="influencer-btn influencer-x-btn" title="X / Twitter">
+            𝕏
+          </a>
+        )}
+        <a href={blogUrl} target="_blank" rel="noreferrer" className="influencer-btn influencer-blog-btn" title={src.domain}>
+          ↗
+        </a>
       </div>
-    </a>
+    </div>
   )
 }
 
@@ -1977,7 +1981,7 @@ function MediaSection({ company, sources }) {
       {!loading && activeTab === 'voices' && (
         <div className="media-voices">
           <div className="subsection-label" style={{ marginBottom: 16 }}>
-            Analysts &amp; Thought Leaders — click any card to find their commentary on {company}
+            Analysts &amp; Thought Leaders
           </div>
           <div className="influencer-grid">
             {(registry['tier5']?.sources || []).map((src, i) => (
@@ -1986,7 +1990,7 @@ function MediaSection({ company, sources }) {
           </div>
 
           <div className="subsection-label" style={{ margin: '24px 0 16px' }}>
-            Podcasts &amp; Long-Form — find episodes mentioning {company}
+            Podcasts &amp; Long-Form
           </div>
           <div className="source-chips">
             {(registry['tier4']?.sources || []).map((src, i) => (
