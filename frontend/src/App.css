@@ -548,3 +548,140 @@ a.stat-value:hover { opacity: .65; }
 .st-sentiment-badge.bearish { background: rgba(160,32,32,.12); color: #a02020; }
 .st-text { font-size: 0.83rem; color: var(--ink-body); line-height: 1.5; }
 .st-date { color: var(--ink-faint); font-size: 0.7rem; margin-top: 4px; display: block; }
+
+/* ── Media & Public Opinion ── */
+.media-tabs {
+  display: flex; gap: 4px; margin-bottom: 20px;
+  border-bottom: 1.5px solid var(--border); padding-bottom: 0;
+}
+.media-tab {
+  padding: 8px 16px; font-size: 0.83rem; font-weight: 500;
+  font-family: var(--sans); border: none; background: none;
+  color: var(--ink-dim); cursor: pointer; border-radius: 6px 6px 0 0;
+  border-bottom: 2px solid transparent; margin-bottom: -1.5px;
+  transition: color .12s, border-color .12s;
+}
+.media-tab:hover { color: var(--ink); }
+.media-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Source chips */
+.source-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.source-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 20px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  font-size: 0.78rem; font-weight: 500; color: var(--ink-dim);
+  text-decoration: none; transition: border-color .12s, color .12s, background .12s;
+  white-space: nowrap;
+}
+.source-chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(30,58,110,.04); }
+.source-chip-hit {
+  border-color: var(--accent); color: var(--accent);
+  background: rgba(30,58,110,.07); font-weight: 600;
+}
+.source-chip-count {
+  background: var(--accent); color: #fff;
+  font-size: 0.67rem; font-weight: 700; padding: 1px 5px;
+  border-radius: 10px; min-width: 18px; text-align: center;
+}
+.source-chip-arrow { font-size: 0.7rem; opacity: .5; }
+
+/* Coverage tiers */
+.media-coverage { display: flex; flex-direction: column; gap: 20px; }
+.media-tier { }
+.media-tier-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.media-tier-emoji { font-size: 1rem; }
+.media-tier-label {
+  font-size: 0.67rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.media-tier-hit-badge {
+  font-size: 0.62rem; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+  background: rgba(26,122,72,.1); color: #1a7a48;
+}
+
+/* Community platforms */
+.community-platform-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.community-platform-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  font-size: 0.82rem; font-weight: 500; color: var(--ink-body);
+  text-decoration: none; transition: border-color .12s, background .12s;
+}
+.community-platform-chip:hover { border-color: var(--border-hi); background: var(--surface-alt); }
+.community-icon { font-size: 1rem; }
+
+/* Discussion posts (HN + Reddit) */
+.discussion-list { display: flex; flex-direction: column; gap: 8px; }
+.discussion-post {
+  padding: 11px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.discussion-post-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.discussion-pts { font-size: 0.78rem; font-weight: 700; color: var(--accent); }
+.discussion-ratio { font-size: 0.72rem; color: #1a7a48; font-weight: 600; }
+.discussion-comments { font-size: 0.72rem; color: var(--ink-dim); }
+.discussion-sub {
+  font-size: 0.7rem; font-weight: 600; color: var(--ink-faint);
+  background: var(--surface-alt); padding: 1px 7px; border-radius: 10px;
+}
+.discussion-date { font-size: 0.7rem; color: var(--ink-faint); margin-left: auto; }
+.discussion-title {
+  font-size: 0.87rem; font-weight: 500; color: var(--ink);
+  text-decoration: none; line-height: 1.45;
+}
+.discussion-title:hover { color: var(--accent); text-decoration: underline; }
+.discussion-thread-link {
+  font-size: 0.72rem; color: var(--ink-faint); text-decoration: none;
+  align-self: flex-start;
+}
+.discussion-thread-link:hover { color: var(--accent); text-decoration: underline; }
+
+/* Influencer grid */
+.influencer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.influencer-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  text-decoration: none; transition: border-color .12s, background .12s;
+}
+.influencer-card:hover { border-color: var(--border-hi); background: var(--surface-alt); }
+.influencer-card-hit { border-color: var(--accent); background: rgba(30,58,110,.04); }
+.influencer-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+}
+.influencer-info { flex: 1; min-width: 0; }
+.influencer-name { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
+.influencer-platform {
+  font-size: 0.7rem; color: var(--ink-faint); margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.influencer-action {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 2px; flex-shrink: 0;
+}
+.influencer-found {
+  font-size: 0.65rem; font-weight: 700; color: #1a7a48;
+  background: rgba(26,122,72,.1); padding: 1px 6px; border-radius: 8px;
+}
+.influencer-link-arrow { font-size: 0.75rem; color: var(--ink-faint); }
+
+.media-empty {
+  padding: 24px 16px; text-align: center;
+  color: var(--ink-dim); font-size: 0.87rem;
+  background: var(--surface-alt); border-radius: 10px;
+  border: 1px dashed var(--border);
+}

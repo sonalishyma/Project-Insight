@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from .schemas import AnalyzeRequest, MarketAnalysis
-from . import pipeline, market_data, search, social
+from . import pipeline, market_data, search, social, media
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Market Research Tool")
@@ -107,6 +107,17 @@ def get_news(request: Request, company: str, ticker: str = Query(default=None)):
 def get_social(request: Request, ticker: str):
     """Return StockTwits social sentiment for a stock ticker."""
     return social.fetch_stocktwits(ticker)
+
+
+@app.get("/media/{company}")
+@limiter.limit("10/minute")
+def get_media(request: Request, company: str):
+    """
+    Return Media & Public Opinion data: HN posts, Reddit posts,
+    source registry with formatted search URLs, and coverage mapping
+    from any articles already found for this company.
+    """
+    return media.fetch_media_overview(company)
 
 
 @app.get("/preview")
