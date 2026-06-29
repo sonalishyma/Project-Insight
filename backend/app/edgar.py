@@ -87,6 +87,11 @@ _TICKER_OVERRIDES: dict[str, str] = {
     "xpo logistics": "XPO",                 # "logistics" not in norm strip list
     # ── Compound words (no space in user query, space in EDGAR) ──
     "exxonmobil": "XOM",                    # EDGAR: "exxon mobil" (two words)
+    # ── Company type suffix collision fixes ──
+    # (words like "motors" now stripped from _norm, but keep explicit overrides
+    #  for cases where stripping creates a new collision)
+    "general motors": "GM",           # norm strips "motors" → "general"; force GM
+    "lucid": "LCID",                  # after "motors" stripped, "lucid motors" → "lucid"
     # ── Companies absent from EDGAR company_tickers.json ──
     "ansys": "ANSS",
     "ansys inc": "ANSS",
@@ -166,6 +171,51 @@ _TICKER_OVERRIDES: dict[str, str] = {
     "gap inc": "GPS",
     "constellation brands": "STZ",        # EDGAR "constellation" → CEG (different company)
     "constellation brands inc": "STZ",
+    # ── International companies (ADR tickers on US exchanges) ──
+    "samsung": "SSNLF",                  # Samsung KRX → US OTC ADR
+    "samsung electronics": "SSNLF",
+    "samsung electronics co": "SSNLF",
+    "lvmh": "LVMUY",                     # LVMH Moët Hennessy US OTC ADR
+    "lvmh moet hennessy": "LVMUY",
+    "lvmh moet hennessy louis vuitton": "LVMUY",
+    "nintendo": "NTDOY",                 # Nintendo US OTC ADR
+    "nintendo co": "NTDOY",
+    "toyota": "TM",                      # Toyota NYSE ADR
+    "toyota motor": "TM",
+    "toyota motor corp": "TM",
+    "sony": "SONY",                      # Sony NYSE ADR
+    "sony group": "SONY",
+    "sony group corp": "SONY",
+    "alibaba": "BABA",                   # Alibaba NYSE ADR
+    "alibaba group": "BABA",
+    "alibaba group holding": "BABA",
+    "tencent": "TCEHY",                  # Tencent US OTC ADR
+    "tencent holdings": "TCEHY",
+    "nestle": "NSRGY",                   # Nestle US OTC ADR
+    "asml": "ASML",                      # ASML NASDAQ
+    "asml holding": "ASML",
+    "tsmc": "TSM",                       # TSMC NYSE ADR
+    "taiwan semiconductor": "TSM",
+    "taiwan semiconductor manufacturing": "TSM",
+    "volkswagen": "VWAGY",               # Volkswagen US OTC ADR
+    "volkswagen ag": "VWAGY",
+    "siemens": "SIEGY",                  # Siemens US OTC ADR
+    "siemens ag": "SIEGY",
+    "sap": "SAP",                        # SAP NYSE ADR
+    "sap se": "SAP",
+    "novo nordisk": "NVO",               # Novo Nordisk NYSE ADR
+    "shell": "SHEL",                     # Shell NYSE ADR
+    "shell plc": "SHEL",
+    "bp": "BP",                          # BP NYSE ADR
+    "bp plc": "BP",
+    "rio tinto": "RIO",                  # Rio Tinto NYSE ADR
+    "rio tinto plc": "RIO",
+    "unilever": "UL",                    # Unilever NYSE ADR
+    "unilever plc": "UL",
+    "spotify": "SPOT",                   # Spotify NYSE (Swedish company)
+    "spotify technology": "SPOT",
+    "shopify": "SHOP",                   # Shopify NYSE (Canadian)
+    "shopify inc": "SHOP",
 }
 
 
@@ -180,7 +230,8 @@ def _norm(name: str) -> str:
         r"properties|financial|capital|energy|resources?|pharmaceuticals?|"
         r"chemicals?|brands?|electric|power|partners?|ventures?|labs?|"
         r"networks?|communications?|media|entertainment|healthcare|health|"
-        r"bancorp|bancorporation|banc|trust)\b\.?",
+        r"bancorp|bancorporation|banc|trust|"
+        r"motors?|automotive|auto|mobility|digital|manufacturing)\b\.?",
         "", name
     )
     name = re.sub(r"[^\w\s]", "", name)
