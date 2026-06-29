@@ -573,6 +573,13 @@ function Report({ data, onSearch }) {
         </>
       )}
 
+      {!isPrivate && data.snapshot?.ticker && (
+        <MarketVoices
+          ticker={data.snapshot.ticker}
+          analystActions={data.analyst_sentiment?.recent_actions}
+        />
+      )}
+
       <PositioningSection pos={data.positioning} />
 
       <Section title="SWOT Analysis" tag="OpenRouter">
@@ -587,7 +594,7 @@ function Report({ data, onSearch }) {
         </div>
       </Section>
 
-      <SourcesAndNews sources={data.sources} company={data.company} />
+      <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
     </div>
   )
 }
@@ -1501,20 +1508,44 @@ function NewsItem({ a, preview }) {
   )
 }
 
+// ─── News date grouping helper ────────────────────────────────────────────────
+
+function groupNewsByRecency(articles) {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfWeek = new Date(startOfToday); startOfWeek.setDate(startOfToday.getDate() - 7)
+  const startOfMonth = new Date(startOfToday); startOfMonth.setDate(startOfToday.getDate() - 30)
+
+  const groups = { today: [], week: [], month: [], older: [] }
+  for (const a of articles) {
+    if (!a.date) { groups.older.push(a); continue }
+    const d = new Date(a.date)
+    if (isNaN(d.getTime())) { groups.older.push(a); continue }
+    if (d >= startOfToday) groups.today.push(a)
+    else if (d >= startOfWeek) groups.week.push(a)
+    else if (d >= startOfMonth) groups.month.push(a)
+    else groups.older.push(a)
+  }
+  return groups
+}
+
 // ─── Sources & News (combined) ────────────────────────────────────────────────
 
-function SourcesAndNews({ sources, company }) {
+function SourcesAndNews({ sources, company, ticker }) {
   const [news, setNews] = useState(null)
   const [newsLoading, setNewsLoading] = useState(true)
   const [previews, setPreviews] = useState({})
 
   useEffect(() => {
     setNewsLoading(true)
-    fetch(`${BACKEND}/news/${encodeURIComponent(company)}`)
+    const url = ticker
+      ? `${BACKEND}/news/${encodeURIComponent(company)}?ticker=${encodeURIComponent(ticker)}`
+      : `${BACKEND}/news/${encodeURIComponent(company)}`
+    fetch(url)
       .then(r => r.json())
       .then(d => { setNews(d.articles || []); setNewsLoading(false) })
       .catch(() => { setNews([]); setNewsLoading(false) })
-  }, [company])
+  }, [company, ticker])
 
   useEffect(() => {
     if (!sources?.length) return
@@ -1526,7 +1557,6 @@ function SourcesAndNews({ sources, company }) {
     })
   }, [sources])
 
-  // Also fetch OG previews for news articles once they load
   useEffect(() => {
     if (!news?.length) return
     news.forEach(a => {
@@ -1541,14 +1571,38 @@ function SourcesAndNews({ sources, company }) {
   const hasSources = sources?.length > 0
   if (!newsLoading && !hasNews && !hasSources) return null
 
+  const grouped = hasNews ? groupNewsByRecency(news) : null
+
   return (
     <Section title="News & Sources">
-      <div className="subsection-label">Latest News</div>
       {newsLoading ? (
-        <div className="news-loading"><div className="spinner small" /><span>Loading…</span></div>
+        <div className="news-loading"><div className="spinner small" /><span>Loading latest news…</span></div>
       ) : hasNews ? (
-        <div className="news-list">
-          {news.map((a, i) => <NewsItem key={i} a={a} preview={previews[a.url]} />)}
+        <div className="news-tiered">
+          {grouped.today.length > 0 && (
+            <div className="news-tier">
+              <div className="news-tier-label">Today</div>
+              <div className="news-list">{grouped.today.map((a, i) => <NewsItem key={i} a={a} preview={previews[a.url]} />)}</div>
+            </div>
+          )}
+          {grouped.week.length > 0 && (
+            <div className="news-tier">
+              <div className="news-tier-label">This Week</div>
+              <div className="news-list">{grouped.week.map((a, i) => <NewsItem key={i} a={a} preview={previews[a.url]} />)}</div>
+            </div>
+          )}
+          {grouped.month.length > 0 && (
+            <div className="news-tier">
+              <div className="news-tier-label">This Month</div>
+              <div className="news-list">{grouped.month.map((a, i) => <NewsItem key={i} a={a} preview={previews[a.url]} />)}</div>
+            </div>
+          )}
+          {grouped.older.length > 0 && (grouped.today.length + grouped.week.length + grouped.month.length === 0) && (
+            <div className="news-tier">
+              <div className="news-tier-label">Recent</div>
+              <div className="news-list">{grouped.older.map((a, i) => <NewsItem key={i} a={a} preview={previews[a.url]} />)}</div>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -1562,6 +1616,128 @@ function SourcesAndNews({ sources, company }) {
           </div>
         </>
       )}
+    </Section>
+  )
+}
+
+// ─── Market Voices (analyst upgrades + StockTwits sentiment) ─────────────────
+
+function MarketVoices({ ticker, analystActions }) {
+  const [social, setSocial] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!ticker) { setLoading(false); return }
+    fetch(`${BACKEND}/social/${encodeURIComponent(ticker)}`)
+      .then(r => r.json())
+      .then(d => { setSocial(d); setLoading(false) })
+      .catch(() => { setSocial({}); setLoading(false) })
+  }, [ticker])
+
+  const hasUpgrades = analystActions?.length > 0
+  const hasSocial = !loading && social && (social.total > 0 || social.posts?.length > 0)
+
+  if (!hasUpgrades && !hasSocial && !loading) return null
+
+  const actionLabel = (action) => {
+    if (!action) return ''
+    if (action === 'up') return 'Upgrade'
+    if (action === 'down') return 'Downgrade'
+    if (action === 'init') return 'Initiated'
+    if (action === 'main') return 'Maintained'
+    return action.charAt(0).toUpperCase() + action.slice(1)
+  }
+
+  const actionClass = (action) => {
+    if (!action) return ''
+    if (action === 'up') return 'upgrade'
+    if (action === 'down') return 'downgrade'
+    return 'neutral'
+  }
+
+  return (
+    <Section title="Market Voices" tag="Tavily">
+      <div className="market-voices-grid">
+
+        {/* ── Wall Street Analyst Ratings ── */}
+        {hasUpgrades && (
+          <div className="voices-col">
+            <div className="subsection-label" style={{ marginBottom: 12 }}>Wall Street Analysts</div>
+            {analystActions.slice(0, 8).map((a, i) => (
+              <div key={i} className={`analyst-action-card ${actionClass(a.action)}`}>
+                <div className="analyst-action-header">
+                  <strong className="analyst-firm">{a.firm}</strong>
+                  <span className={`action-badge action-${actionClass(a.action)}`}>{actionLabel(a.action)}</span>
+                </div>
+                <div className="analyst-grade-row">
+                  {a.from_grade && a.to_grade ? (
+                    <span className="analyst-grade-change">
+                      <span className="from-grade">{a.from_grade}</span>
+                      <span className="grade-arrow">→</span>
+                      <strong className="to-grade">{a.to_grade}</strong>
+                    </span>
+                  ) : (
+                    <span className="to-grade">{a.to_grade || a.from_grade || '—'}</span>
+                  )}
+                  {a.date && <small className="analyst-date">{fmtDate(a.date)}</small>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── StockTwits Social Sentiment ── */}
+        {(hasSocial || loading) && (
+          <div className="voices-col">
+            <div className="subsection-label" style={{ marginBottom: 12 }}>Social Sentiment · StockTwits</div>
+            {loading ? (
+              <div className="news-loading"><div className="spinner small" /><span>Loading…</span></div>
+            ) : (
+              <>
+                {social.bullish_pct != null && (
+                  <div className="sentiment-meter">
+                    <div className="sentiment-bar">
+                      <div className="sentiment-bull" style={{ width: `${social.bullish_pct}%` }} />
+                      <div className="sentiment-bear" style={{ width: `${100 - social.bullish_pct}%` }} />
+                    </div>
+                    <div className="sentiment-labels">
+                      <span className="sentiment-bull-label">
+                        {social.bullish_pct}% Bullish <small>({social.bullish_count})</small>
+                      </span>
+                      <span className="sentiment-bear-label">
+                        {100 - social.bullish_pct}% Bearish <small>({social.bearish_count})</small>
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="st-posts">
+                  {(social.posts || []).slice(0, 4).map((p, i) => (
+                    <div key={i} className={`st-post ${p.sentiment ? p.sentiment.toLowerCase() : ''}`}>
+                      <div className="st-post-header">
+                        <span className="st-user">
+                          {p.verified && <span className="st-verified">✓</span>}
+                          @{p.user}
+                        </span>
+                        {p.followers > 0 && (
+                          <span className="st-followers">
+                            {p.followers >= 1000 ? `${(p.followers / 1000).toFixed(1)}K` : p.followers} followers
+                          </span>
+                        )}
+                        {p.sentiment && (
+                          <span className={`st-sentiment-badge ${p.sentiment.toLowerCase()}`}>{p.sentiment}</span>
+                        )}
+                      </div>
+                      <p className="st-text">{p.text}</p>
+                      {p.date && <small className="st-date">{p.date}</small>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+      </div>
     </Section>
   )
 }

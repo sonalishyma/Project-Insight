@@ -444,3 +444,107 @@ a.stat-value:hover { opacity: .65; }
 .news-item-meta { display: flex; align-items: center; gap: 7px; }
 .news-item-title { font-size: 0.88rem; font-weight: 600; color: var(--ink); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .news-item-snippet { font-size: 0.78rem; color: var(--ink-dim); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Tiered News ── */
+.news-tiered { display: flex; flex-direction: column; gap: 24px; }
+.news-tier-label {
+  font-size: 0.63rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.news-tier-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Market Voices ── */
+.market-voices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .market-voices-grid { grid-template-columns: 1fr; }
+}
+
+.voices-col { display: flex; flex-direction: column; gap: 8px; }
+
+/* Analyst action cards */
+.analyst-action-card {
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  background: var(--surface);
+}
+.analyst-action-card.upgrade { border-left-color: #1a7a48; }
+.analyst-action-card.downgrade { border-left-color: #a02020; }
+.analyst-action-card.neutral { border-left-color: #a06010; }
+
+.analyst-action-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 5px; gap: 8px;
+}
+.analyst-firm { font-size: 0.87rem; font-weight: 600; color: var(--ink); }
+
+.action-badge {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.action-upgrade { background: rgba(26,122,72,.1); color: #1a7a48; }
+.action-downgrade { background: rgba(160,32,32,.1); color: #a02020; }
+.action-neutral { background: rgba(160,96,16,.1); color: #a06010; }
+
+.analyst-grade-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
+.analyst-grade-change { display: flex; align-items: center; gap: 5px; font-size: 0.83rem; }
+.from-grade { color: var(--ink-dim); }
+.grade-arrow { color: var(--ink-faint); font-size: 0.75rem; }
+.to-grade { font-weight: 600; color: var(--ink); }
+.analyst-date { color: var(--ink-faint); font-size: 0.72rem; white-space: nowrap; }
+
+/* StockTwits sentiment meter */
+.sentiment-meter { margin-bottom: 14px; }
+.sentiment-bar {
+  height: 10px; border-radius: 6px; overflow: hidden;
+  display: flex; background: var(--border);
+}
+.sentiment-bull { background: #1a7a48; transition: width .4s ease; }
+.sentiment-bear { background: #a02020; transition: width .4s ease; }
+.sentiment-labels {
+  display: flex; justify-content: space-between; margin-top: 6px;
+  font-size: 0.76rem; font-weight: 600;
+}
+.sentiment-bull-label { color: #1a7a48; }
+.sentiment-bear-label { color: #a02020; }
+.sentiment-labels small { font-weight: 400; color: var(--ink-faint); }
+
+/* StockTwits posts */
+.st-posts { display: flex; flex-direction: column; gap: 8px; }
+.st-post {
+  padding: 10px 13px; border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-left: 3px solid var(--border);
+}
+.st-post.bullish { border-left-color: rgba(26,122,72,.4); }
+.st-post.bearish { border-left-color: rgba(160,32,32,.4); }
+
+.st-post-header {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 5px; flex-wrap: wrap;
+}
+.st-user { font-size: 0.8rem; font-weight: 600; color: var(--accent); }
+.st-verified { color: #1a7a48; margin-right: 2px; }
+.st-followers { font-size: 0.72rem; color: var(--ink-faint); }
+.st-sentiment-badge {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; padding: 2px 6px; border-radius: 10px;
+  margin-left: auto; flex-shrink: 0;
+}
+.st-sentiment-badge.bullish { background: rgba(26,122,72,.12); color: #1a7a48; }
+.st-sentiment-badge.bearish { background: rgba(160,32,32,.12); color: #a02020; }
+.st-text { font-size: 0.83rem; color: var(--ink-body); line-height: 1.5; }
+.st-date { color: var(--ink-faint); font-size: 0.7rem; margin-top: 4px; display: block; }

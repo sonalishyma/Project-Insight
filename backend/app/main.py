@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from .schemas import AnalyzeRequest, MarketAnalysis
-from . import pipeline, market_data, search
+from . import pipeline, market_data, search, social
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Market Research Tool")
@@ -83,8 +83,30 @@ def search_companies(request: Request, q: str = Query(..., min_length=2, max_len
 
 @app.get("/news/{company}")
 @limiter.limit("20/minute")
-def get_news(request: Request, company: str):
-    return {"articles": search.fetch_news(company)}
+def get_news(request: Request, company: str, ticker: str = Query(default=None)):
+    """Return recent news, merging Tavily search with yfinance news when ticker is known."""
+    tavily_articles = search.fetch_news(company, days=30)
+
+    yf_articles: list[dict] = []
+    if ticker:
+        yf_articles = market_data.get_yf_news(ticker)
+
+    # Merge and deduplicate by URL, then sort newest-first
+    seen: set[str] = {a["url"] for a in tavily_articles}
+    for a in yf_articles:
+        if a["url"] not in seen:
+            tavily_articles.append(a)
+            seen.add(a["url"])
+
+    tavily_articles.sort(key=lambda a: a.get("date") or "", reverse=True)
+    return {"articles": tavily_articles}
+
+
+@app.get("/social/{ticker}")
+@limiter.limit("30/minute")
+def get_social(request: Request, ticker: str):
+    """Return StockTwits social sentiment for a stock ticker."""
+    return social.fetch_stocktwits(ticker)
 
 
 @app.get("/preview")
