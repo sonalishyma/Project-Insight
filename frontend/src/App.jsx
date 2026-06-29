@@ -533,20 +533,6 @@ function Report({ data, onSearch }) {
         <p className="summary-text">{data.summary}</p>
       </Section>
 
-      {/* ── Recent news & research sources ── */}
-      <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
-
-      {/* ── Competitive landscape ── */}
-      {(data.competitors || []).length > 0 && (
-        <Section title="Competitive Landscape" tag="OpenRouter">
-          <div className="competitor-list">
-            {data.competitors.map((c, i) => (
-              <CompetitorCard key={i} c={c} onSearch={onSearch} />
-            ))}
-          </div>
-        </Section>
-      )}
-
       {/* ── Public: stock + financials ── */}
       {!isPrivate && (
         <>
@@ -599,6 +585,18 @@ function Report({ data, onSearch }) {
       <Section title="SWOT Analysis" tag="OpenRouter">
         <SwotGrid swot={data.swot} />
       </Section>
+
+      {(data.competitors || []).length > 0 && (
+        <Section title="Competitive Landscape" tag="OpenRouter">
+          <div className="competitor-list">
+            {data.competitors.map((c, i) => (
+              <CompetitorCard key={i} c={c} onSearch={onSearch} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
     </div>
   )
 }
