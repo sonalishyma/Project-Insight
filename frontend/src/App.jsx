@@ -1007,8 +1007,9 @@ function StockChart({ initialData, ticker }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
             <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
             <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} width={56} />
+            <ChartGradientDefs gradients={[{ id: 'grad-stock', from: '#3F37C9', to: '#4CC9F0', horizontal: true }]} />
             <Tooltip content={<CustomTooltip />} />
-            <Line type="monotone" dataKey="close" stroke="#2563EB" dot={false} strokeWidth={2} />
+            <Line type="monotone" dataKey="close" stroke="url(#grad-stock)" dot={false} strokeWidth={2.5} />
           </LineChart>
         </ResponsiveContainer>
       )}
@@ -1204,18 +1205,37 @@ function FinancialMetrics({ ratios, summary }) {
 
 // ─── Annual Charts ────────────────────────────────────────────────────────────
 
+// Shared "Purple Raindrops" gradient defs — reused across all charts so each
+// metric (Revenue, Net Income, etc.) keeps a consistent color identity.
+function ChartGradientDefs({ gradients }) {
+  return (
+    <defs>
+      {gradients.map(g => (
+        <linearGradient key={g.id} id={g.id} x1="0" y1="0" x2={g.horizontal ? '1' : '0'} y2={g.horizontal ? '0' : '1'}>
+          <stop offset="0%" stopColor={g.from} />
+          <stop offset="100%" stopColor={g.to} />
+        </linearGradient>
+      ))}
+    </defs>
+  )
+}
+
 function AnnualRevenueChart({ data }) {
   return (
     <Section title="Annual Revenue & Gross Profit ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <ChartGradientDefs gradients={[
+            { id: 'grad-rev-revenue', from: '#4361EE', to: '#3F37C9' },
+            { id: 'grad-rev-grossprofit', from: '#4CC9F0', to: '#4895EF' },
+          ]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="revenue" fill="#2563EB" name="Revenue" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="gross_profit" fill="#10B981" name="Gross Profit" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="revenue" fill="url(#grad-rev-revenue)" name="Revenue" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="gross_profit" fill="url(#grad-rev-grossprofit)" name="Gross Profit" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
@@ -1227,13 +1247,17 @@ function AnnualIncomeChart({ data }) {
     <Section title="Annual Operating & Net Income ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <ChartGradientDefs gradients={[
+            { id: 'grad-inc-opincome', from: '#7209B7', to: '#560BAD' },
+            { id: 'grad-inc-netincome', from: '#F72585', to: '#B5179E' },
+          ]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="operating_income" fill="#7C3AED" name="Operating Income" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="net_income" fill="#F97316" name="Net Income" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="operating_income" fill="url(#grad-inc-opincome)" name="Operating Income" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="net_income" fill="url(#grad-inc-netincome)" name="Net Income" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
@@ -1245,11 +1269,12 @@ function AnnualFCFChart({ data }) {
     <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <ChartGradientDefs gradients={[{ id: 'grad-fcf', from: '#480CA8', to: '#3A0CA3' }]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
-          <Bar dataKey="fcf" fill="#14B8A6" name="Free Cash Flow" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="fcf" fill="url(#grad-fcf)" name="Free Cash Flow" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
@@ -1261,11 +1286,12 @@ function AnnualEPSChart({ data }) {
     <Section title="Annual EPS" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <ChartGradientDefs gradients={[{ id: 'grad-eps', from: '#B5179E', to: '#F72585', horizontal: true }]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
           <Tooltip formatter={v => v != null ? `$${v.toFixed(2)}` : '—'} />
-          <Line type="monotone" dataKey="eps" stroke="#DB2777" strokeWidth={2} dot={{ fill: '#DB2777', r: 4 }} name="EPS" />
+          <Line type="monotone" dataKey="eps" stroke="url(#grad-eps)" strokeWidth={2.5} dot={{ fill: '#F72585', r: 4 }} name="EPS" />
         </LineChart>
       </ResponsiveContainer>
     </Section>
@@ -1286,13 +1312,17 @@ function QuarterlyChart({ data }) {
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={visible} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <ChartGradientDefs gradients={[
+            { id: 'grad-qtr-revenue', from: '#4361EE', to: '#3F37C9' },
+            { id: 'grad-qtr-netincome', from: '#F72585', to: '#B5179E' },
+          ]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
           <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="revenue" fill="#2563EB" name="Revenue" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="net_income" fill="#F97316" name="Net Income" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="revenue" fill="url(#grad-qtr-revenue)" name="Revenue" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="net_income" fill="url(#grad-qtr-netincome)" name="Net Income" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
