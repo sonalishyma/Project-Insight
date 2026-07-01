@@ -1,9 +1,10 @@
 import html as _html
+import logging
 import os
 import re
 
 import httpx
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -11,6 +12,8 @@ from slowapi.util import get_remote_address
 
 from .schemas import AnalyzeRequest, MarketAnalysis
 from . import pipeline, market_data, search, social, media
+
+logger = logging.getLogger("uvicorn.error")
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Market Research Tool")
@@ -68,7 +71,19 @@ def debug_market(company: str = Query(default="Nike")):
 @app.post("/analyze", response_model=MarketAnalysis)
 @limiter.limit("6/minute")
 def analyze(request: Request, req: AnalyzeRequest):
-    return pipeline.run(req.company)
+    try:
+        return pipeline.run(req.company)
+    except Exception:
+        # Raising HTTPException here (rather than letting the exception propagate)
+        # keeps the error response inside Starlette's CORS-wrapped middleware layer.
+        # An unhandled exception instead falls through to ServerErrorMiddleware, which
+        # sits outside CORSMiddleware — the browser then sees a bare "Failed to fetch"
+        # instead of the real error.
+        logger.exception("analyze failed for company=%r", req.company)
+        raise HTTPException(
+            status_code=502,
+            detail="Analysis failed — the upstream data or AI provider may be temporarily unavailable. Please try again.",
+        )
 
 
 @app.get("/stock/{ticker}")
