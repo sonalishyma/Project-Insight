@@ -37,6 +37,17 @@ function money(v) {
   if (v == null) return null
   return `$${Number(v).toFixed(2)}`
 }
+function sourcesFootnote(sources) {
+  if (!sources?.length) return null
+  const dated = sources
+    .map(s => s.date)
+    .filter(Boolean)
+    .map(d => new Date(d))
+    .filter(d => !isNaN(d.getTime()))
+  const mostRecent = dated.length ? new Date(Math.max(...dated)) : null
+  const dateStr = mostRecent ? fmtDate(mostRecent) : null
+  return `Based on ${sources.length} source${sources.length === 1 ? '' : 's'}${dateStr ? ` · most recent ${dateStr}` : ''}`
+}
 function loadStored(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) || fallback
@@ -249,6 +260,7 @@ export default function App() {
           <div className="report-top-banner-inner">
             <button className="banner-btn banner-btn-home" onClick={goHome}>← Home</button>
             <div className="banner-actions">
+              <button className="banner-btn" onClick={() => window.print()}>Export PDF</button>
               <button className="banner-btn" onClick={saveCurrentReport}>
                 {isCurrentSaved ? 'Report Saved ✓' : 'Save Report'}
               </button>
@@ -508,6 +520,7 @@ function Report({ data, onSearch }) {
   const isPrivate = data.company_type === 'private'
   const hasFCF = data.annual_data?.some(d => d.fcf != null)
   const hasEPS = data.annual_data?.some(d => d.eps != null)
+  const sourcesNote = sourcesFootnote(data.sources)
 
   return (
     <div className="report">
@@ -535,7 +548,7 @@ function Report({ data, onSearch }) {
       <Snapshot snap={data.snapshot} />
 
       {/* 2. Positioning */}
-      <PositioningSection pos={data.positioning} />
+      <PositioningSection pos={data.positioning} meta={sourcesNote} />
 
       {/* 3. Financial data */}
       {!isPrivate && (
@@ -572,10 +585,10 @@ function Report({ data, onSearch }) {
           <PrivateFinancialNote />
           <FundingSection funding={data.funding} />
           <GrowthSignalsSection signals={data.growth_signals} />
-          {data.milestones?.length > 0 && <MilestoneTimeline milestones={data.milestones} />}
+          {data.milestones?.length > 0 && <MilestoneTimeline milestones={data.milestones} meta={sourcesNote} />}
           <MarketTractionSection traction={data.market_traction} />
           {data.financial_summary && (
-            <Section title="Investment Commentary" tag="OpenRouter">
+            <Section title="Investment Commentary" tag="OpenRouter" meta={sourcesNote}>
               <p className="summary-text">{data.financial_summary}</p>
             </Section>
           )}
@@ -583,18 +596,18 @@ function Report({ data, onSearch }) {
       )}
 
       {/* 4. SWOT Analysis */}
-      <Section title="SWOT Analysis" tag="OpenRouter">
+      <Section title="SWOT Analysis" tag="OpenRouter" meta={sourcesNote}>
         <SwotGrid swot={data.swot} />
       </Section>
 
       {/* 5. What's Happening Now */}
-      <Section title="What's Happening Now" tag="OpenRouter">
+      <Section title="What's Happening Now" tag="OpenRouter" meta={sourcesNote}>
         <p className="summary-text">{data.summary}</p>
       </Section>
 
       {/* 6. Competitive Landscape */}
       {(data.competitors || []).length > 0 && (
-        <Section title="Competitive Landscape" tag="OpenRouter">
+        <Section title="Competitive Landscape" tag="OpenRouter" meta={sourcesNote}>
           <div className="competitor-list">
             {data.competitors.map((c, i) => (
               <CompetitorCard key={i} c={c} onSearch={onSearch} />
@@ -762,10 +775,10 @@ function GrowthSignalsSection({ signals }) {
 
 // ─── Milestone Timeline ───────────────────────────────────────────────────────
 
-function MilestoneTimeline({ milestones }) {
+function MilestoneTimeline({ milestones, meta }) {
   if (!milestones?.length) return null
   return (
-    <Section title="Company Timeline" tag="OpenRouter">
+    <Section title="Company Timeline" tag="OpenRouter" meta={meta}>
       <div className="milestone-timeline">
         {milestones.map((m, i) => (
           <div key={i} className="milestone-item">
@@ -1331,7 +1344,7 @@ function QuarterlyChart({ data }) {
 
 // ─── Positioning ──────────────────────────────────────────────────────────────
 
-function PositioningSection({ pos }) {
+function PositioningSection({ pos, meta }) {
   if (!pos) return null
   const items = [
     { label: 'Overview', value: pos.overview },
@@ -1344,7 +1357,7 @@ function PositioningSection({ pos }) {
   ].filter(i => i.value)
   if (!items.length) return null
   return (
-    <Section title="Positioning" tag="OpenRouter">
+    <Section title="Positioning" tag="OpenRouter" meta={meta}>
       <div className="positioning-list">
         {items.map(item => (
           <div key={item.label} className="positioning-item">
@@ -1772,18 +1785,21 @@ function MarketVoices({ ticker, analystActions }) {
 // ─── Section ──────────────────────────────────────────────────────────────────
 
 const _AI_TAGS = new Set(['OpenRouter'])
-function Section({ title, children, action, tag }) {
+function Section({ title, children, action, tag, meta }) {
   return (
     <div className="section">
       <div className="section-header">
-        <h3>
-          {title}
-          {tag && (
-            <span className={`section-tag ${_AI_TAGS.has(tag) ? 'section-tag-ai' : 'section-tag-data'}`}>
-              {tag}
-            </span>
-          )}
-        </h3>
+        <div>
+          <h3>
+            {title}
+            {tag && (
+              <span className={`section-tag ${_AI_TAGS.has(tag) ? 'section-tag-ai' : 'section-tag-data'}`}>
+                {tag}
+              </span>
+            )}
+          </h3>
+          {meta && <div className="section-meta">{meta}</div>}
+        </div>
         {action && <div className="section-action">{action}</div>}
       </div>
       {children}
