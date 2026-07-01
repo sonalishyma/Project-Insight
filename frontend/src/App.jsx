@@ -860,7 +860,7 @@ function HeaderLogo({ url, name }) {
 // ─── Confidence ───────────────────────────────────────────────────────────────
 
 function ConfidencePill({ score, sources }) {
-  const color = score >= 80 ? '#1a7a48' : score >= 60 ? '#a06010' : '#a02020'
+  const color = score >= 80 ? '#2F7A52' : score >= 60 ? '#B8791E' : '#B23B3B'
   return (
     <div className="confidence-pill-wrapper" tabIndex={0} aria-label="AI Confidence Score description">
       <div className="confidence-pill" style={{ borderColor: color }}>
@@ -872,10 +872,10 @@ function ConfidencePill({ score, sources }) {
         <div className="confidence-tooltip-title">AI Confidence Score</div>
         <p>Reflects how much verified, recent public information was available for this company when the report was generated.</p>
         <div className="confidence-tooltip-ranges">
-          <div><span style={{ color: '#1a7a48', fontWeight: 700 }}>90 – 100</span> Rich data, multiple verified sources</div>
-          <div><span style={{ color: '#1a7a48', fontWeight: 700 }}>70 – 89</span> Good coverage, minor gaps</div>
-          <div><span style={{ color: '#a06010', fontWeight: 700 }}>50 – 69</span> Significant gaps or older data</div>
-          <div><span style={{ color: '#a02020', fontWeight: 700 }}>0 – 49</span> Very limited public information</div>
+          <div><span style={{ color: '#2F7A52', fontWeight: 700 }}>90 – 100</span> Rich data, multiple verified sources</div>
+          <div><span style={{ color: '#2F7A52', fontWeight: 700 }}>70 – 89</span> Good coverage, minor gaps</div>
+          <div><span style={{ color: '#B8791E', fontWeight: 700 }}>50 – 69</span> Significant gaps or older data</div>
+          <div><span style={{ color: '#B23B3B', fontWeight: 700 }}>0 – 49</span> Very limited public information</div>
         </div>
       </div>
     </div>
@@ -971,7 +971,7 @@ function StockChart({ initialData, ticker }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
     const d = payload[0].payload
-    const color = (d.change ?? 0) >= 0 ? '#1a7a48' : '#a02020'
+    const color = (d.change ?? 0) >= 0 ? '#2F7A52' : '#B23B3B'
     return (
       <div className="chart-tooltip">
         <div className="tooltip-date">{label}</div>
@@ -1000,9 +1000,9 @@ function StockChart({ initialData, ticker }) {
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
-            <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} />
-            <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} width={56} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
+            <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
+            <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} width={56} />
             <Tooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="close" stroke="#1e3a6e" dot={false} strokeWidth={2} />
           </LineChart>
@@ -1205,7 +1205,7 @@ function NavyHatchDefs({ id }) {
   return (
     <defs>
       <pattern id={id} patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-45 0 0)">
-        <rect width="7" height="7" fill="#d8e4f4" />
+        <rect width="7" height="7" fill="#E7DFC8" />
         <line x1="0" y1="0" x2="0" y2="7" stroke="#1e3a6e" strokeWidth="3" />
       </pattern>
     </defs>
@@ -1218,9 +1218,9 @@ function AnnualRevenueChart({ data }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <NavyHatchDefs id="hatch-rev" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="revenue" fill="#1e3a6e" name="Revenue" radius={[3, 3, 0, 0]} />
@@ -1237,9 +1237,9 @@ function AnnualIncomeChart({ data }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <NavyHatchDefs id="hatch-inc" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="operating_income" fill="#1e3a6e" name="Operating Income" radius={[3, 3, 0, 0]} />
@@ -1255,9 +1255,9 @@ function AnnualFCFChart({ data }) {
     <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Bar dataKey="fcf" fill="#2a4f9a" name="Free Cash Flow" radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -1271,9 +1271,9 @@ function AnnualEPSChart({ data }) {
     <Section title="Annual EPS" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
           <Tooltip formatter={v => v != null ? `$${v.toFixed(2)}` : '—'} />
           <Line type="monotone" dataKey="eps" stroke="#1e3a6e" strokeWidth={2} dot={{ fill: '#1e3a6e', r: 4 }} name="EPS" />
         </LineChart>
@@ -1297,9 +1297,9 @@ function QuarterlyChart({ data }) {
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={visible} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <NavyHatchDefs id="hatch-qtr" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4dc" />
-          <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#a0a0a0' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#a0a0a0' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
+          <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#A79E89' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="revenue" fill="#1e3a6e" name="Revenue" radius={[3, 3, 0, 0]} />
@@ -1343,10 +1343,10 @@ function PositioningSection({ pos }) {
 function SwotGrid({ swot }) {
   if (!swot) return null
   const quadrants = [
-    { key: 'strengths',    label: 'Strengths',    color: '#1a7a48', bg: 'rgba(26,122,72,.05)',   border: 'rgba(26,122,72,.18)'   },
-    { key: 'weaknesses',   label: 'Weaknesses',   color: '#a02020', bg: 'rgba(160,32,32,.05)',   border: 'rgba(160,32,32,.18)'   },
-    { key: 'opportunities',label: 'Opportunities',color: '#1a5090', bg: 'rgba(26,80,144,.05)',   border: 'rgba(26,80,144,.18)'   },
-    { key: 'threats',      label: 'Threats',      color: '#9a6010', bg: 'rgba(154,96,16,.05)',   border: 'rgba(154,96,16,.18)'   },
+    { key: 'strengths',    label: 'Strengths',    color: '#2F7A52', bg: 'rgba(47,122,82,.05)',   border: 'rgba(47,122,82,.18)'   },
+    { key: 'weaknesses',   label: 'Weaknesses',   color: '#B23B3B', bg: 'rgba(178,59,59,.05)',   border: 'rgba(178,59,59,.18)'   },
+    { key: 'opportunities',label: 'Opportunities',color: '#2A4F82', bg: 'rgba(42,79,130,.05)',   border: 'rgba(42,79,130,.18)'   },
+    { key: 'threats',      label: 'Threats',      color: '#B8791E', bg: 'rgba(184,121,30,.05)',   border: 'rgba(184,121,30,.18)'   },
   ]
   return (
     <div className="swot-grid">
