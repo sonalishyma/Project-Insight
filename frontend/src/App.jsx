@@ -340,12 +340,14 @@ const EXAMPLE_COMPANIES = [
   { name: 'Tesla', type: 'Public' },
   { name: 'Anthropic', type: 'Private' },
 ]
+const HOME_EXAMPLE_GRADIENTS = 6
 
 function HomePage({ onSearch }) {
   return (
     <div className="home-page">
       <div className="home-features">
-        <div className="home-feature-card">
+        <div className="home-feature-card home-feature-card--blue">
+          <span className="home-feature-icon">📈</span>
           <div className="home-feature-title">Public Companies</div>
           <div className="home-feature-desc">
             Stock performance, financial ratios, revenue charts, valuation metrics, quarterly earnings, and AI-generated competitive analysis — all in one place.
@@ -358,7 +360,8 @@ function HomePage({ onSearch }) {
           </ul>
         </div>
 
-        <div className="home-feature-card">
+        <div className="home-feature-card home-feature-card--warm">
+          <span className="home-feature-icon">🚀</span>
           <div className="home-feature-title">Private Startups</div>
           <div className="home-feature-desc">
             No financial filings? No problem. Insight automatically switches to a startup-native dashboard covering what actually matters for early-stage companies.
@@ -371,7 +374,8 @@ function HomePage({ onSearch }) {
           </ul>
         </div>
 
-        <div className="home-feature-card">
+        <div className="home-feature-card home-feature-card--teal">
+          <span className="home-feature-icon">🔍</span>
           <div className="home-feature-title">Source-Grounded AI</div>
           <div className="home-feature-desc">
             Every claim in the analysis is traceable to live web sources fetched at query time — not cached knowledge. News, filings, and research from trusted publications.
@@ -388,10 +392,10 @@ function HomePage({ onSearch }) {
       <div className="home-examples">
         <div className="home-examples-label">Try an example</div>
         <div className="home-examples-pills">
-          {EXAMPLE_COMPANIES.map(c => (
+          {EXAMPLE_COMPANIES.map((c, i) => (
             <button
               key={c.name}
-              className="home-example-pill"
+              className={`home-example-pill home-example-pill--grad${i % HOME_EXAMPLE_GRADIENTS}`}
               onClick={() => onSearch(c.name)}
             >
               {c.name}
@@ -1000,11 +1004,11 @@ function StockChart({ initialData, ticker }) {
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
-            <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
-            <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} width={56} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
+            <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
+            <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} width={56} />
             <Tooltip content={<CustomTooltip />} />
-            <Line type="monotone" dataKey="close" stroke="#1e3a6e" dot={false} strokeWidth={2} />
+            <Line type="monotone" dataKey="close" stroke="#2563EB" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       )}
@@ -1200,31 +1204,18 @@ function FinancialMetrics({ ratios, summary }) {
 
 // ─── Annual Charts ────────────────────────────────────────────────────────────
 
-// Shared navy hatch pattern — diagonal stripes, used by all bar charts
-function NavyHatchDefs({ id }) {
-  return (
-    <defs>
-      <pattern id={id} patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-45 0 0)">
-        <rect width="7" height="7" fill="#E7DFC8" />
-        <line x1="0" y1="0" x2="0" y2="7" stroke="#1e3a6e" strokeWidth="3" />
-      </pattern>
-    </defs>
-  )
-}
-
 function AnnualRevenueChart({ data }) {
   return (
     <Section title="Annual Revenue & Gross Profit ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <NavyHatchDefs id="hatch-rev" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="revenue" fill="#1e3a6e" name="Revenue" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="gross_profit" fill="url(#hatch-rev)" name="Gross Profit" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="revenue" fill="#2563EB" name="Revenue" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="gross_profit" fill="#10B981" name="Gross Profit" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
@@ -1236,14 +1227,13 @@ function AnnualIncomeChart({ data }) {
     <Section title="Annual Operating & Net Income ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <NavyHatchDefs id="hatch-inc" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="operating_income" fill="#1e3a6e" name="Operating Income" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="net_income" fill="url(#hatch-inc)" name="Net Income" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="operating_income" fill="#7C3AED" name="Operating Income" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="net_income" fill="#F97316" name="Net Income" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
@@ -1255,11 +1245,11 @@ function AnnualFCFChart({ data }) {
     <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
-          <Bar dataKey="fcf" fill="#2a4f9a" name="Free Cash Flow" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="fcf" fill="#14B8A6" name="Free Cash Flow" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
@@ -1271,11 +1261,11 @@ function AnnualEPSChart({ data }) {
     <Section title="Annual EPS" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
           <Tooltip formatter={v => v != null ? `$${v.toFixed(2)}` : '—'} />
-          <Line type="monotone" dataKey="eps" stroke="#1e3a6e" strokeWidth={2} dot={{ fill: '#1e3a6e', r: 4 }} name="EPS" />
+          <Line type="monotone" dataKey="eps" stroke="#DB2777" strokeWidth={2} dot={{ fill: '#DB2777', r: 4 }} name="EPS" />
         </LineChart>
       </ResponsiveContainer>
     </Section>
@@ -1296,14 +1286,13 @@ function QuarterlyChart({ data }) {
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={visible} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <NavyHatchDefs id="hatch-qtr" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#E3D8C0" />
-          <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#A79E89' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#A79E89' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
+          <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="revenue" fill="#1e3a6e" name="Revenue" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="net_income" fill="url(#hatch-qtr)" name="Net Income" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="revenue" fill="#2563EB" name="Revenue" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="net_income" fill="#F97316" name="Net Income" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Section>
