@@ -280,6 +280,7 @@ def _build_snapshot(mdata: dict) -> CompanySnapshot:
         wiki_summary=mdata.get("wiki_summary"),
         wiki_url=mdata.get("wiki_url"),
         data_as_of=mdata.get("data_as_of"),
+        classification_source=mdata.get("classification_source"),
     )
 
 
@@ -311,7 +312,7 @@ def _build_social(social_links: dict, recent_signals: list[dict]) -> tuple[Socia
     return links, signals
 
 
-def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict], social_links: dict, recent_signals: list[dict]) -> MarketAnalysis:
+def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict], social_links: dict, recent_signals: list[dict], classification: str = "public") -> MarketAnalysis:
     context = _build_context(articles, company, mdata)
 
     completion = client.chat.completions.create(
@@ -350,7 +351,7 @@ def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict],
 
     return MarketAnalysis(
         company=company,
-        company_type="public",
+        company_type=classification,
         summary=data["summary"],
         market_size=data["market_size"],
         positioning=Positioning(**data["positioning"]),
@@ -488,24 +489,37 @@ def run(company: str) -> MarketAnalysis:
         base_url="https://openrouter.ai/api/v1",
     )
 
-    # Fetch market data first — determines public vs private classification
+    # Fetch market data first — determines public vs private vs unknown classification
     mdata = market_data.fetch(company)
-    # A company is public if we found a ticker AND have ANY financial evidence
-    # (market_cap, stock price history, or income statement data).
+    # A company is confidently "public" if we found a ticker AND have ANY financial
+    # evidence (market_cap, stock price history, or income statement data).
     # market_cap alone can be None when Yahoo Finance's quoteSummary API is
     # rate-limited on cloud IPs — stock_history and annual_data use different
     # endpoints that remain accessible, so they serve as reliable fallbacks.
+    #
+    # A ticker WITHOUT any financial evidence is genuinely ambiguous rather than
+    # "private" — we found something that trades under a symbol, we just couldn't
+    # verify it with numbers (foreign listing yfinance doesn't cover well, a data
+    # provider hiccup, etc). Silently relabeling that as "private" and running the
+    # startup-funding-rounds pipeline on an actual public company would be worse
+    # than admitting "unknown" and still using the public research path.
     _ticker = mdata.get("ticker")
     _has_data = bool(
         mdata.get("market_cap")
         or mdata.get("stock_history")
         or mdata.get("annual_data")
     )
-    is_public = bool(_ticker and _has_data)
+    if _ticker and _has_data:
+        classification = "public"
+    elif _ticker:
+        classification = "unknown"
+    else:
+        classification = "private"
+    is_public = classification in ("public", "unknown")
     print(
         f"[pipeline] {company}: ticker={_ticker}, market_cap={mdata.get('market_cap')}, "
         f"has_stock_history={bool(mdata.get('stock_history'))}, "
-        f"has_annual_data={bool(mdata.get('annual_data'))}, is_public={is_public}",
+        f"has_annual_data={bool(mdata.get('annual_data'))}, classification={classification}",
         flush=True,
     )
 
@@ -522,7 +536,7 @@ def run(company: str) -> MarketAnalysis:
         recent_signals = signals_future.result()
 
     if is_public:
-        return _run_public(display_name, client, mdata, articles, social_links, recent_signals)
+        return _run_public(display_name, client, mdata, articles, social_links, recent_signals, classification)
     else:
         return _run_private(company, client, mdata, articles, social_links, recent_signals)
 
