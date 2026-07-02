@@ -1,4 +1,5 @@
 import os
+import re
 from urllib.parse import urlparse
 
 from tavily import TavilyClient
@@ -65,6 +66,47 @@ TRUSTED_DOMAINS = [
     "bls.gov",
     "census.gov",
 ]
+
+
+def _clean_snippet(text: str, max_len: int) -> str:
+    """
+    Tavily's scraped `content` carries raw page artifacts — markdown heading
+    markers from <h2>/<h3> tags, bold/italic asterisks, and repeated "opens new
+    tab" link-accessibility text — that read fine to an LLM but look broken
+    rendered as-is in the UI. Strip those, then truncate on a word boundary
+    instead of mid-word.
+    """
+    if not text:
+        return text
+    for zero_width in ('\u200b', '\u200c', '\u200d', '\ufeff'):
+        text = text.replace(zero_width, '')
+    text = re.sub(r'\bopens new tab\b', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\*{1,3}', '', text)              # bold/italic markers — strip before heading check below
+    text = re.sub(r'#{1,6}\s+(?=[A-Z])', '', text)  # markdown headings, wherever they land
+    text = re.sub(r'\s*,\s*,', ',', text)             # doubled commas left by removed link text
+    text = re.sub(r'\.{2,}', '.', text)               # doubled periods left by removed markers
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r'\s+([,.;:])', r'\1', text)
+    if len(text) <= max_len:
+        return text
+    truncated = text[:max_len]
+    last_space = truncated.rfind(' ')
+    if last_space > max_len * 0.6:
+        truncated = truncated[:last_space]
+    return truncated.rstrip('.,;:') + '…'
+
+
+_BOILERPLATE_MARKERS = ('cookie', 'tracking technolog', 'subscribe to our newsletter', 'sign up for our newsletter')
+
+
+def _is_boilerplate(text: str) -> bool:
+    """
+    Tavily occasionally scrapes a cookie-consent banner instead of the article body.
+    Check only the leading chars — the same window a reader would actually see —
+    since a legitimate article can mention "cookies" in passing much further down.
+    """
+    lowered = text[:250].lower()
+    return any(m in lowered for m in _BOILERPLATE_MARKERS)
 
 
 def _get_client() -> TavilyClient:
@@ -200,9 +242,10 @@ def fetch_news(company: str, days: int = 30) -> list[dict]:
                 "title": r["title"],
                 "url": r["url"],
                 "date": r.get("published_date"),
-                "snippet": r.get("content", "")[:200],
+                "snippet": _clean_snippet(r.get("content", ""), 200),
             }
             for r in resp.get("results", [])
+            if not _is_boilerplate(r.get("content", ""))
         ]
     except Exception:
         return []
@@ -260,7 +303,7 @@ def fetch_recent_signals(company: str, days: int = 7) -> list[dict]:
         for r in resp.get("results", []):
             url = r.get("url", "")
             content = r.get("content", "")
-            if not content:
+            if not content or _is_boilerplate(content):
                 continue
             domain = urlparse(url).netloc.replace("www.", "").lower()
             if domain in ("twitter.com", "x.com"):
@@ -269,9 +312,12 @@ def fetch_recent_signals(company: str, days: int = 7) -> list[dict]:
                 platform = "linkedin"
             else:
                 platform = "web"
+            cleaned = _clean_snippet(content, 280)
+            if not cleaned:
+                continue
             signals.append({
                 "platform": platform,
-                "text": content[:280],
+                "text": cleaned,
                 "url": url,
                 "date": r.get("published_date"),
             })
