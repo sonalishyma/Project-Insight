@@ -93,6 +93,7 @@ body {
 
 .report-header-left h2 { font-size: 1.95rem; font-weight: 800; letter-spacing: -.03em; color: var(--ink); }
 .report-header-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.classification-source { font-size: 0.68rem; color: var(--ink-faint); margin-top: 6px; }
 .badge { padding: 4px 11px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: .02em; }
 .badge-blue { background: var(--accent); color: #fff; }
 .badge-gray { background: var(--surface-alt); color: var(--ink-dim); border: 1px solid var(--border); }
@@ -426,13 +427,18 @@ a.stat-value:hover { opacity: .65; }
 
 .home-disclaimer { background: rgba(184,121,30,.08); border: 1.5px solid rgba(184,121,30,.22); border-radius: 16px; padding: 13px 17px; font-size: 0.84rem; color: var(--ink-body); line-height: 1.6; }
 
+.unknown-classification-note { background: rgba(184,121,30,.08); border: 1.5px solid rgba(184,121,30,.22); border-radius: 16px; padding: 15px 18px; font-size: 0.87rem; color: var(--ink-body); line-height: 1.65; }
+.unknown-classification-note strong { color: var(--amber); }
+
 /* ── Company Type Badge ── */
 .company-type-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1.5px solid; }
 .company-type-badge.public { border-color: var(--accent); background: rgba(30,58,110,.05); }
 .company-type-badge.private { border-color: var(--purple); background: rgba(124,79,160,.05); }
+.company-type-badge.unknown { border-color: var(--amber); background: rgba(184,121,30,.06); }
 .type-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
 .company-type-badge.public .type-label { color: var(--accent); }
 .company-type-badge.private .type-label { color: var(--purple); }
+.company-type-badge.unknown .type-label { color: var(--amber); }
 .type-stage { font-size: 0.7rem; font-weight: 600; color: var(--ink-dim); background: var(--surface-alt); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
 
 /* ── Private Financial Note ── */

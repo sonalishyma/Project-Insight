@@ -156,6 +156,7 @@ class CompanySnapshot(BaseModel):
     wiki_summary: str | None = None
     wiki_url: str | None = None
     data_as_of: str | None = None
+    classification_source: str | None = None  # how public/private status was determined
 
 
 # ── Private company models ────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ class MarketTraction(BaseModel):
 
 class MarketAnalysis(BaseModel):
     company: str
-    company_type: str = "public"        # "public" | "private"
+    company_type: str = "public"        # "public" | "private" | "unknown" (ticker found, data unverified)
     stage: str | None = None            # private only: "Seed", "Series A", etc.
     summary: str
     market_size: str

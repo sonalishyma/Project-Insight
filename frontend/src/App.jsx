@@ -48,6 +48,11 @@ function sourcesFootnote(sources) {
   const dateStr = mostRecent ? fmtDate(mostRecent) : null
   return `Based on ${sources.length} source${sources.length === 1 ? '' : 's'}${dateStr ? ` · most recent ${dateStr}` : ''}`
 }
+function classificationCaption(source) {
+  if (!source) return null
+  if (source === 'No public listing found') return source
+  return `Verified via ${source}`
+}
 function loadStored(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) || fallback
@@ -518,6 +523,7 @@ function Report({ data, onSearch }) {
   useEffect(() => { warnRatios(data.financial_ratios) }, [data.financial_ratios])
 
   const isPrivate = data.company_type === 'private'
+  const isUnknown = data.company_type === 'unknown'
   const hasFCF = data.annual_data?.some(d => d.fcf != null)
   const hasEPS = data.annual_data?.some(d => d.eps != null)
   const sourcesNote = sourcesFootnote(data.sources)
@@ -537,6 +543,9 @@ function Report({ data, onSearch }) {
               {data.market_size && <span className="badge badge-purple">{data.market_size}</span>}
               <CompanyTypeBadge type={data.company_type} stage={data.stage} />
             </div>
+            {classificationCaption(data.snapshot?.classification_source) && (
+              <div className="classification-source">{classificationCaption(data.snapshot?.classification_source)}</div>
+            )}
           </div>
         </div>
         <div className="report-header-right">
@@ -553,6 +562,12 @@ function Report({ data, onSearch }) {
       {/* 3. Financial data */}
       {!isPrivate && (
         <>
+          {isUnknown && (
+            <UnknownClassificationNote
+              ticker={data.snapshot?.ticker}
+              source={data.snapshot?.classification_source}
+            />
+          )}
           <StockChart initialData={data.stock_history} ticker={data.snapshot?.ticker} />
           <PublicMarketIntel sentiment={data.analyst_sentiment} earnings={data.earnings_info} />
           <FinancialMetrics ratios={data.financial_ratios} summary={data.financial_summary} />
@@ -627,10 +642,12 @@ function Report({ data, onSearch }) {
 
 // ─── Company Type Badge ───────────────────────────────────────────────────────
 
+const _TYPE_LABELS = { private: 'Private', unknown: 'Unverified' }
+
 function CompanyTypeBadge({ type, stage }) {
   return (
     <div className={`company-type-badge ${type}`}>
-      <span className="type-label">{type === 'private' ? 'Private' : 'Public'}</span>
+      <span className="type-label">{_TYPE_LABELS[type] || 'Public'}</span>
       {stage && <span className="type-stage">{stage}</span>}
     </div>
   )
@@ -657,6 +674,21 @@ function PrivateFinancialNote() {
         </div>
       </div>
     </Section>
+  )
+}
+
+// ─── Unknown Classification Note ──────────────────────────────────────────────
+
+function UnknownClassificationNote({ ticker, source }) {
+  return (
+    <div className="unknown-classification-note">
+      <strong>Classification unverified.</strong>{' '}
+      {ticker
+        ? <>We found a ticker (<strong>{ticker}</strong>{source ? ` via ${source}` : ''}) for this company, but couldn't retrieve verified financial data to confirm it's actively traded — this can happen with foreign listings, very recent IPOs, or a temporary data-provider gap. </>
+        : <>We couldn't fully verify this company's public/private status. </>
+      }
+      Showing whatever public information is available below.
+    </div>
   )
 }
 

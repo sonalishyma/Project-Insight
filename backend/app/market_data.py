@@ -446,20 +446,26 @@ def fetch(company: str) -> dict:
         "stock_history": [], "quarterly_earnings": [], "annual_data": [],
         "analyst_sentiment": None, "earnings_info": None,
         "cik": None, "company_name": None,
+        "classification_source": None,
     }
 
     from . import edgar as _edgar
     ticker_sym, edgar_cik = _edgar.find_ticker(company)
     print(f"[market_data] EDGAR lookup for '{company}': {ticker_sym}", flush=True)
 
-    if not ticker_sym:
+    if ticker_sym:
+        result["classification_source"] = "SEC EDGAR"
+    else:
         # EDGAR didn't find it. Try Yahoo Finance search — handles brand names
         # (e.g. "Hydro Flask" → Helen of Troy), subsidiaries, international ADRs,
         # and recently IPO'd companies not yet in EDGAR's static company list.
         ticker_sym = _yf_search_ticker(company)
         edgar_cik = None  # CIK not known for YF-search results
+        if ticker_sym:
+            result["classification_source"] = "Yahoo Finance search"
 
     if not ticker_sym:
+        result["classification_source"] = "No public listing found"
         return result  # Genuinely private or unrecognizable
 
     result["ticker"] = ticker_sym
