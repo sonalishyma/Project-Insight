@@ -545,7 +545,7 @@ function Report({ data, onSearch }) {
       </div>
 
       {/* 1. Company Snapshot */}
-      <Snapshot snap={data.snapshot} />
+      <Snapshot snap={data.snapshot} social={data.social_links} />
 
       {/* 2. Positioning */}
       <PositioningSection pos={data.positioning} meta={sourcesNote} />
@@ -616,7 +616,10 @@ function Report({ data, onSearch }) {
         </Section>
       )}
 
-      {/* 7. News & Sources */}
+      {/* 7. Recent Signals */}
+      <RecentSignalsSection signals={data.recent_signals} />
+
+      {/* 8. News & Sources */}
       <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
     </div>
   )
@@ -901,7 +904,26 @@ function ConfidencePill({ score, sources }) {
 
 // ─── Snapshot ─────────────────────────────────────────────────────────────────
 
-function Snapshot({ snap }) {
+function SocialLinksRow({ social }) {
+  if (!social) return null
+  const links = [
+    { key: 'twitter', url: social.twitter_url, label: '𝕏', name: 'X (Twitter)' },
+    { key: 'linkedin', url: social.linkedin_url, label: 'in', name: 'LinkedIn' },
+    { key: 'instagram', url: social.instagram_url, label: 'IG', name: 'Instagram' },
+  ].filter(l => l.url)
+  if (!links.length) return null
+  return (
+    <div className="social-links-row">
+      {links.map(l => (
+        <a key={l.key} href={l.url} target="_blank" rel="noreferrer" className={`social-link-btn social-link-${l.key}`} aria-label={l.name} title={l.name}>
+          {l.label}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+function Snapshot({ snap, social }) {
   if (!snap?.ticker && !snap?.market_cap) return null
 
   const stats = [
@@ -936,6 +958,12 @@ function Snapshot({ snap }) {
             <a className="stat-value link" href={snap.website} target="_blank" rel="noreferrer">
               {snap.website.replace(/^https?:\/\//, '')}
             </a>
+          </div>
+        )}
+        {social && (social.twitter_url || social.linkedin_url || social.instagram_url) && (
+          <div className="snapshot-stat">
+            <span className="stat-label">Social</span>
+            <SocialLinksRow social={social} />
           </div>
         )}
       </div>
@@ -1565,6 +1593,66 @@ function groupNewsByRecency(articles) {
     else groups.older.push(a)
   }
   return groups
+}
+
+// ─── Recent Signals (search-retrieved posts, with live Twitter oEmbed) ────────
+
+function RecentSignalsSection({ signals }) {
+  if (!signals?.length) return null
+  return (
+    <Section title="Recent Signals" tag="Tavily">
+      <div className="recent-signals-list">
+        {signals.map((s, i) => <RecentSignalCard key={i} signal={s} />)}
+      </div>
+    </Section>
+  )
+}
+
+const _PLATFORM_LABELS = { twitter: 'X (Twitter)', linkedin: 'LinkedIn' }
+
+function RecentSignalCard({ signal }) {
+  const isTweet = signal.platform === 'twitter' && /\/status\/\d+/.test(signal.url)
+  const [embedHtml, setEmbedHtml] = useState(null)
+  const [embedFailed, setEmbedFailed] = useState(false)
+
+  useEffect(() => {
+    if (!isTweet) return
+    let cancelled = false
+    fetch(`https://publish.twitter.com/oembed?url=${encodeURIComponent(signal.url)}&omit_script=true`)
+      .then(r => { if (!r.ok) throw new Error('oembed unavailable'); return r.json() })
+      .then(json => { if (!cancelled && json.html) setEmbedHtml(json.html) })
+      .catch(() => { if (!cancelled) setEmbedFailed(true) })
+    return () => { cancelled = true }
+  }, [isTweet, signal.url])
+
+  useEffect(() => {
+    if (!embedHtml) return
+    if (document.getElementById('twitter-widgets-js')) {
+      window.twttr?.widgets?.load()
+      return
+    }
+    const script = document.createElement('script')
+    script.id = 'twitter-widgets-js'
+    script.src = 'https://platform.twitter.com/widgets.js'
+    script.async = true
+    script.onload = () => window.twttr?.widgets?.load()
+    document.body.appendChild(script)
+  }, [embedHtml])
+
+  if (isTweet && embedHtml && !embedFailed) {
+    return <div className="recent-signal-embed" dangerouslySetInnerHTML={{ __html: embedHtml }} />
+  }
+
+  const platformLabel = _PLATFORM_LABELS[signal.platform] || getDomain(signal.url)
+  return (
+    <a href={signal.url} target="_blank" rel="noreferrer" className="recent-signal-card">
+      <div className="recent-signal-meta">
+        <span className={`recent-signal-platform recent-signal-platform-${signal.platform}`}>{platformLabel}</span>
+        {signal.date && <span className="recent-signal-date">{fmtDate(signal.date)}</span>}
+      </div>
+      <p className="recent-signal-text">{signal.text}</p>
+    </a>
+  )
 }
 
 // ─── Sources & News (combined) ────────────────────────────────────────────────
