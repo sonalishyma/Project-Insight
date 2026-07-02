@@ -85,6 +85,14 @@ _TICKER_OVERRIDES: dict[str, str] = {
     "fleetcor": "FLT",                      # FleetCor → Corpay
     "fleetcor technologies": "FLT",
     "xpo logistics": "XPO",                 # "logistics" not in norm strip list
+    # ── Consumer brand name → parent company's SEC-registered ticker ──
+    # (the brand a user actually types often isn't the legal entity name at all,
+    # so neither prefix nor fuzzy matching against EDGAR's name list can find it)
+    "google": "GOOGL",                      # legal entity is "Alphabet Inc."
+    "youtube": "GOOGL",
+    "facebook": "META",                     # legal entity is "Meta Platforms, Inc."
+    "instagram": "META",
+    "whatsapp": "META",
     # ── Compound words (no space in user query, space in EDGAR) ──
     "exxonmobil": "XOM",                    # EDGAR: "exxon mobil" (two words)
     # ── Company type suffix collision fixes ──
