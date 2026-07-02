@@ -11,6 +11,19 @@ class Source(BaseModel):
     date: str | None = None
 
 
+class SocialLinks(BaseModel):
+    twitter_url: str | None = None
+    linkedin_url: str | None = None
+    instagram_url: str | None = None
+
+
+class RecentSignal(BaseModel):
+    platform: str          # "twitter" | "linkedin" | "web"
+    text: str               # snippet/post text
+    url: str
+    date: str | None = None
+
+
 class Positioning(BaseModel):
     overview: str
     primary_customer_base: str
@@ -202,6 +215,8 @@ class MarketAnalysis(BaseModel):
     confidence_score: int = 0
     financial_summary: str | None = None
     snapshot: CompanySnapshot | None = None
+    social_links: SocialLinks | None = None
+    recent_signals: list[RecentSignal] = []
     # Public-only fields
     financial_ratios: FinancialRatios | None = None
     analyst_sentiment: AnalystSentiment | None = None

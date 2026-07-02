@@ -8,8 +8,8 @@ from openai import OpenAI
 from .schemas import (
     AnalystSentiment, AnnualPoint, Competitor, CompanySnapshot, EarningsInfo, EarningsPoint,
     FinancialRatios, FundingInfo, FundingRound, GrowthSignals,
-    MarketAnalysis, Milestone, MarketTraction, Positioning, Source,
-    StockPoint, SwotAnalysis,
+    MarketAnalysis, Milestone, MarketTraction, Positioning, RecentSignal, Source,
+    SocialLinks, StockPoint, SwotAnalysis,
 )
 from . import search, market_data, edgar
 
@@ -305,7 +305,13 @@ def _enrich_and_date(data: dict, articles: list[dict]) -> tuple[list, dict]:
 
 # ── Public pipeline ───────────────────────────────────────────────────────────
 
-def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict]) -> MarketAnalysis:
+def _build_social(social_links: dict, recent_signals: list[dict]) -> tuple[SocialLinks | None, list[RecentSignal]]:
+    links = SocialLinks(**social_links) if social_links else None
+    signals = [RecentSignal(**s) for s in recent_signals]
+    return links, signals
+
+
+def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict], social_links: dict, recent_signals: list[dict]) -> MarketAnalysis:
     context = _build_context(articles, company, mdata)
 
     completion = client.chat.completions.create(
@@ -340,6 +346,7 @@ def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict])
 
     data = json.loads(completion.choices[0].message.tool_calls[0].function.arguments)
     enriched, article_dates = _enrich_and_date(data, articles)
+    social, signals = _build_social(social_links, recent_signals)
 
     return MarketAnalysis(
         company=company,
@@ -354,6 +361,8 @@ def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict])
         confidence_score=data.get("confidence_score", 50),
         financial_summary=data.get("financial_summary"),
         snapshot=_build_snapshot(mdata),
+        social_links=social,
+        recent_signals=signals,
         financial_ratios=FinancialRatios(
             pe_ratio=mdata.get("pe_ratio"),
             pb_ratio=mdata.get("pb_ratio"),
@@ -384,7 +393,7 @@ def _run_public(company: str, client: OpenAI, mdata: dict, articles: list[dict])
 
 # ── Private pipeline ──────────────────────────────────────────────────────────
 
-def _run_private(company: str, client: OpenAI, mdata: dict, articles: list[dict]) -> MarketAnalysis:
+def _run_private(company: str, client: OpenAI, mdata: dict, articles: list[dict], social_links: dict, recent_signals: list[dict]) -> MarketAnalysis:
     context = search.format_context(articles)
 
     completion = client.chat.completions.create(
@@ -445,6 +454,7 @@ def _run_private(company: str, client: OpenAI, mdata: dict, articles: list[dict]
 
     # Collect all investors for top-level field
     all_investors = raw_funding.get("all_investors") or [] if raw_funding else []
+    social, signals = _build_social(social_links, recent_signals)
 
     return MarketAnalysis(
         company=company,
@@ -465,6 +475,8 @@ def _run_private(company: str, client: OpenAI, mdata: dict, articles: list[dict]
         milestones=milestones,
         market_traction=market_traction,
         investors=all_investors,
+        social_links=social,
+        recent_signals=signals,
     )
 
 
@@ -499,13 +511,20 @@ def run(company: str) -> MarketAnalysis:
 
     # Use FMP's official company name when available (corrects typos like "NetIflix" → "Netflix, Inc.")
     display_name = mdata.get("company_name") or company
+    name_for_social = display_name if is_public else company
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        articles_future = executor.submit(search.fetch if is_public else search.fetch_private, name_for_social)
+        social_future = executor.submit(search.fetch_social_links, name_for_social)
+        signals_future = executor.submit(search.fetch_recent_signals, name_for_social)
+        articles = articles_future.result()
+        social_links = social_future.result()
+        recent_signals = signals_future.result()
 
     if is_public:
-        articles = search.fetch(display_name)
-        return _run_public(display_name, client, mdata, articles)
+        return _run_public(display_name, client, mdata, articles, social_links, recent_signals)
     else:
-        articles = search.fetch_private(company)
-        return _run_private(company, client, mdata, articles)
+        return _run_private(company, client, mdata, articles, social_links, recent_signals)
 
 
 if __name__ == "__main__":

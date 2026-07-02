@@ -1,4 +1,6 @@
 import os
+from urllib.parse import urlparse
+
 from tavily import TavilyClient
 
 _client: TavilyClient | None = None
@@ -204,6 +206,78 @@ def fetch_news(company: str, days: int = 30) -> list[dict]:
         ]
     except Exception:
         return []
+
+
+def fetch_social_links(company: str) -> dict:
+    """
+    Find official social profile URLs via a targeted search, matched deterministically
+    by domain rather than asking the LLM to guess — a wrong URL here is a broken link,
+    not just a weak paragraph, so we don't want hallucination risk in this field.
+    """
+    links: dict[str, str] = {}
+    try:
+        resp = _get_client().search(
+            query=f"{company} official Twitter LinkedIn Instagram",
+            search_depth="basic",
+            max_results=8,
+            topic="general",
+        )
+        for r in resp.get("results", []):
+            url = r.get("url", "")
+            parsed = urlparse(url)
+            domain = parsed.netloc.replace("www.", "").lower()
+            path = parsed.path.strip("/")
+            if domain in ("twitter.com", "x.com") and "twitter_url" not in links:
+                if path and "/" not in path:  # profile URL, not a status/tweet link
+                    links["twitter_url"] = url
+            elif domain == "linkedin.com" and "linkedin_url" not in links:
+                if path.startswith("company/"):
+                    links["linkedin_url"] = url
+            elif domain == "instagram.com" and "instagram_url" not in links:
+                if path and "/" not in path:
+                    links["instagram_url"] = url
+    except Exception:
+        pass
+    return links
+
+
+def fetch_recent_signals(company: str, days: int = 7) -> list[dict]:
+    """
+    Recent social-adjacent posts/announcements, retrieved through search snippets rather
+    than platform APIs (X's read API is paid-tier only; Instagram/LinkedIn have no public
+    read access for arbitrary accounts). Falls back to general web results when nothing
+    from the social platforms themselves is indexed for this window.
+    """
+    signals: list[dict] = []
+    try:
+        resp = _get_client().search(
+            query=f'"{company}" announcement OR update OR launches',
+            search_depth="basic",
+            topic="news",
+            days=days,
+            max_results=6,
+        )
+        for r in resp.get("results", []):
+            url = r.get("url", "")
+            content = r.get("content", "")
+            if not content:
+                continue
+            domain = urlparse(url).netloc.replace("www.", "").lower()
+            if domain in ("twitter.com", "x.com"):
+                platform = "twitter"
+            elif domain == "linkedin.com":
+                platform = "linkedin"
+            else:
+                platform = "web"
+            signals.append({
+                "platform": platform,
+                "text": content[:280],
+                "url": url,
+                "date": r.get("published_date"),
+            })
+    except Exception:
+        pass
+    return signals
 
 
 def format_context(articles: list[dict]) -> str:
