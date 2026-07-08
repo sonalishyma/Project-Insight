@@ -260,89 +260,112 @@ export default function App() {
 
   return (
     <>
-      {result && (
-        <div className="report-top-banner">
-          <div className="report-top-banner-inner">
-            <button className="banner-btn banner-btn-home" onClick={goHome}>← Home</button>
-            <div className="banner-actions">
-              <button className="banner-btn" onClick={() => window.print()}>Export PDF</button>
-              <button className="banner-btn" onClick={saveCurrentReport}>
-                {isCurrentSaved ? 'Report Saved ✓' : 'Save Report'}
-              </button>
-              <button className="banner-btn" onClick={() => toggleFavorite({ company: result.company, ticker: result.snapshot?.ticker })}>
-                {isCurrentFavorite ? '★ Favorited' : '☆ Favorite'}
-              </button>
-            </div>
+      <div className="app-shell">
+        <aside className="app-sidebar" aria-label="Main navigation">
+          <button className="brand-block" onClick={goHome} aria-label="Go home">
+            <span className="brand-mark">I</span>
+            <span>
+              <strong>Insight</strong>
+              <small>Market OS</small>
+            </span>
+          </button>
+          <nav className="side-nav">
+            <a className="side-nav-item active" href="#overview"><span />Overview</a>
+            <a className="side-nav-item" href="#signals"><span />Signals</a>
+            <a className="side-nav-item" href="#competitive"><span />Competitive</a>
+            <a className="side-nav-item" href="#sources"><span />Sources</a>
+          </nav>
+          <div className="sidebar-footer">
+            <span>{savedReports.length} saved reports</span>
+            <button onClick={() => setLibraryOpen(true)}>Open library</button>
           </div>
-        </div>
-      )}
-      <div className="app">
-      <header className="app-header">
-        <h1>Insight</h1>
-        <p>AI-powered market research for any company, public or private</p>
-      </header>
+        </aside>
 
-      <form onSubmit={handleSubmit} className="search-form">
-        <div className="search-input-wrap">
-          <input
-            type="text"
-            placeholder="Enter a company name..."
-            value={company}
-            onChange={e => {
-              setCompany(e.target.value)
-              setSuppressAutocomplete(false)
-            }}
-            disabled={loading}
-            autoComplete="off"
-          />
-          {(suggestions.length > 0 || suggesting) && (
-            <div className="autocomplete-menu">
-              {suggesting && <div className="autocomplete-status">Searching...</div>}
-              {suggestions.map(s => (
-                <button
-                  type="button"
-                  key={`${s.symbol}-${s.name}`}
-                  className="autocomplete-item"
-                  onClick={() => doSearch(s.name)}
-                >
-                  <span>{s.name}</span>
-                  <small>{[s.symbol, s.exchange].filter(Boolean).join(' · ')}</small>
+        <main className="app-main">
+          <div className="topbar">
+            <header className="app-header">
+              <h1>{result ? 'Campaign Details' : 'Market Research'}</h1>
+              <p>{result ? 'Outcome first, drivers next, sources always visible.' : 'AI-powered market research for any company, public or private.'}</p>
+            </header>
+
+            <form onSubmit={handleSubmit} className="search-form">
+              <div className="search-input-wrap">
+                <input
+                  type="text"
+                  placeholder="Search a company..."
+                  value={company}
+                  onChange={e => {
+                    setCompany(e.target.value)
+                    setSuppressAutocomplete(false)
+                  }}
+                  disabled={loading}
+                  autoComplete="off"
+                />
+                {(suggestions.length > 0 || suggesting) && (
+                  <div className="autocomplete-menu">
+                    {suggesting && <div className="autocomplete-status">Searching...</div>}
+                    {suggestions.map(s => (
+                      <button
+                        type="button"
+                        key={`${s.symbol}-${s.name}`}
+                        className="autocomplete-item"
+                        onClick={() => doSearch(s.name)}
+                      >
+                        <span>{s.name}</span>
+                        <small>{[s.symbol, s.exchange].filter(Boolean).join(' · ')}</small>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button type="submit" disabled={loading || !company.trim()}>
+                {loading ? 'Analyzing...' : 'Analyze'}
+              </button>
+            </form>
+          </div>
+
+          {result && (
+            <div className="report-top-banner">
+              <button className="banner-btn banner-btn-home" onClick={goHome}>Home</button>
+              <div className="banner-actions">
+                <button className="banner-btn" onClick={() => window.print()}>Export PDF</button>
+                <button className="banner-btn" onClick={saveCurrentReport}>
+                  {isCurrentSaved ? 'Report Saved' : 'Save Report'}
                 </button>
-              ))}
+                <button className="banner-btn" onClick={() => toggleFavorite({ company: result.company, ticker: result.snapshot?.ticker })}>
+                  {isCurrentFavorite ? 'Favorited' : 'Favorite'}
+                </button>
+              </div>
             </div>
           )}
-        </div>
-        <button type="submit" disabled={loading || !company.trim()}>
-          {loading ? 'Analyzing...' : 'Analyze'}
-        </button>
-      </form>
 
-      <ResearchLibrary
-        savedReports={savedReports}
-        favorites={favorites}
-        history={history}
-        open={libraryOpen}
-        onToggleOpen={() => setLibraryOpen(open => !open)}
-        onOpenReport={openSavedReport}
-        onSearch={doSearch}
-        onToggleFavorite={toggleFavorite}
-      />
+          <ResearchLibrary
+            savedReports={savedReports}
+            favorites={favorites}
+            history={history}
+            open={libraryOpen}
+            onToggleOpen={() => setLibraryOpen(open => !open)}
+            onOpenReport={openSavedReport}
+            onSearch={doSearch}
+            onToggleFavorite={toggleFavorite}
+          />
 
-      {error && <div className="error">{error}</div>}
-      {loading && (
-        <div className="loading">
-          <div className="spinner" />
-          <p>Researching <strong>{company}</strong>...</p>
-        </div>
-      )}
-      {showHome && <HomePage onSearch={doSearch} />}
-      {result && (
-        <Report
-          data={result}
-          onSearch={doSearch}
-        />
-      )}
-    </div>
+          {error && <div className="error">{error}</div>}
+          {loading && (
+            <div className="loading">
+              <div className="spinner" />
+              <p>Researching <strong>{company}</strong>...</p>
+            </div>
+          )}
+          {showHome && <HomePage onSearch={doSearch} />}
+          {result && (
+            <Report
+              data={result}
+              onSearch={doSearch}
+            />
+          )}
+        </main>
+      </div>
     </>
   )
 }
@@ -364,7 +387,7 @@ function HomePage({ onSearch }) {
     <div className="home-page">
       <div className="home-features">
         <div className="home-feature-card home-feature-card--blue">
-          <span className="home-feature-icon">📈</span>
+          <span className="home-feature-icon">01</span>
           <div className="home-feature-title">Public Companies</div>
           <div className="home-feature-desc">
             Stock performance, financial ratios, revenue charts, valuation metrics, quarterly earnings, and AI-generated competitive analysis — all in one place.
@@ -378,7 +401,7 @@ function HomePage({ onSearch }) {
         </div>
 
         <div className="home-feature-card home-feature-card--warm">
-          <span className="home-feature-icon">🚀</span>
+          <span className="home-feature-icon">02</span>
           <div className="home-feature-title">Private Startups</div>
           <div className="home-feature-desc">
             No financial filings? No problem. Insight automatically switches to a startup-native dashboard covering what actually matters for early-stage companies.
@@ -392,7 +415,7 @@ function HomePage({ onSearch }) {
         </div>
 
         <div className="home-feature-card home-feature-card--teal">
-          <span className="home-feature-icon">🔍</span>
+          <span className="home-feature-icon">03</span>
           <div className="home-feature-title">Source-Grounded AI</div>
           <div className="home-feature-desc">
             Every claim in the analysis is traceable to live web sources fetched at query time — not cached knowledge. News, filings, and research from trusted publications.
@@ -527,9 +550,12 @@ function Report({ data, onSearch }) {
   const hasFCF = data.annual_data?.some(d => d.fcf != null)
   const hasEPS = data.annual_data?.some(d => d.eps != null)
   const sourcesNote = sourcesFootnote(data.sources)
+  const hasSnapshot = !!(data.snapshot?.ticker || data.snapshot?.market_cap)
+  const hasPositioning = !!data.positioning
+  const hasPublicMarketIntel = !!(data.analyst_sentiment || data.earnings_info)
 
   return (
-    <div className="report">
+    <div className="report" id="overview">
 
       {/* ── Header ── */}
       <div className="report-header">
@@ -553,11 +579,21 @@ function Report({ data, onSearch }) {
         </div>
       </div>
 
-      {/* 1. Company Snapshot */}
-      <Snapshot snap={data.snapshot} social={data.social_links} />
+      <ReportOverview data={data} sourcesNote={sourcesNote} />
+      <ReportKpis data={data} />
 
-      {/* 2. Positioning */}
-      <PositioningSection pos={data.positioning} meta={sourcesNote} />
+      {/* 1. Company Snapshot */}
+      {hasSnapshot && hasPositioning ? (
+        <div className="report-grid report-grid--top">
+          <Snapshot snap={data.snapshot} social={data.social_links} />
+          <PositioningSection pos={data.positioning} meta={sourcesNote} />
+        </div>
+      ) : (
+        <>
+          <Snapshot snap={data.snapshot} social={data.social_links} />
+          <PositioningSection pos={data.positioning} meta={sourcesNote} />
+        </>
+      )}
 
       {/* 3. Financial data */}
       {!isPrivate && (
@@ -568,8 +604,14 @@ function Report({ data, onSearch }) {
               source={data.snapshot?.classification_source}
             />
           )}
-          <StockChart initialData={data.stock_history} ticker={data.snapshot?.ticker} />
-          <PublicMarketIntel sentiment={data.analyst_sentiment} earnings={data.earnings_info} />
+          {hasPublicMarketIntel ? (
+            <div className="report-grid report-grid--market">
+              <StockChart initialData={data.stock_history} ticker={data.snapshot?.ticker} />
+              <PublicMarketIntel sentiment={data.analyst_sentiment} earnings={data.earnings_info} />
+            </div>
+          ) : (
+            <StockChart initialData={data.stock_history} ticker={data.snapshot?.ticker} />
+          )}
           <FinancialMetrics ratios={data.financial_ratios} summary={data.financial_summary} />
           {data.annual_data?.length > 0 && (
             <>
@@ -598,10 +640,14 @@ function Report({ data, onSearch }) {
       {isPrivate && (
         <>
           <PrivateFinancialNote />
-          <FundingSection funding={data.funding} />
-          <GrowthSignalsSection signals={data.growth_signals} />
-          {data.milestones?.length > 0 && <MilestoneTimeline milestones={data.milestones} meta={sourcesNote} />}
-          <MarketTractionSection traction={data.market_traction} />
+          <div className="report-grid">
+            <FundingSection funding={data.funding} />
+            <GrowthSignalsSection signals={data.growth_signals} />
+          </div>
+          <div className="report-grid">
+            {data.milestones?.length > 0 && <MilestoneTimeline milestones={data.milestones} meta={sourcesNote} />}
+            <MarketTractionSection traction={data.market_traction} />
+          </div>
           {data.financial_summary && (
             <Section title="Investment Commentary" tag="OpenRouter" meta={sourcesNote}>
               <p className="summary-text">{data.financial_summary}</p>
@@ -611,31 +657,111 @@ function Report({ data, onSearch }) {
       )}
 
       {/* 4. SWOT Analysis */}
-      <Section title="SWOT Analysis" tag="OpenRouter" meta={sourcesNote}>
-        <SwotGrid swot={data.swot} />
-      </Section>
+      <div className="report-grid" id="signals">
+        <Section title="SWOT Analysis" tag="OpenRouter" meta={sourcesNote}>
+          <SwotGrid swot={data.swot} />
+        </Section>
 
-      {/* 5. What's Happening Now */}
-      <Section title="What's Happening Now" tag="OpenRouter" meta={sourcesNote}>
-        <p className="summary-text">{data.summary}</p>
-      </Section>
+        {/* 5. What's Happening Now */}
+        <Section title="What's Happening Now" tag="OpenRouter" meta={sourcesNote}>
+          <p className="summary-text">{data.summary}</p>
+        </Section>
+      </div>
 
       {/* 6. Competitive Landscape */}
       {(data.competitors || []).length > 0 && (
-        <Section title="Competitive Landscape" tag="OpenRouter" meta={sourcesNote}>
-          <div className="competitor-list">
-            {data.competitors.map((c, i) => (
-              <CompetitorCard key={i} c={c} onSearch={onSearch} />
-            ))}
-          </div>
-        </Section>
+        <div id="competitive">
+          <Section title="Competitive Landscape" tag="OpenRouter" meta={sourcesNote}>
+            <div className="competitor-list">
+              {data.competitors.map((c, i) => (
+                <CompetitorCard key={i} c={c} onSearch={onSearch} />
+              ))}
+            </div>
+          </Section>
+        </div>
       )}
 
       {/* 7. Recent Signals */}
       <RecentSignalsSection signals={data.recent_signals} />
 
       {/* 8. News & Sources */}
-      <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
+      <div id="sources">
+        <SourcesAndNews sources={data.sources} company={data.company} ticker={data.snapshot?.ticker} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Report Overview ─────────────────────────────────────────────────────────
+
+function firstValue(...values) {
+  return values.find(v => v != null && v !== '')
+}
+
+function ReportOverview({ data, sourcesNote }) {
+  const confidence = Math.max(0, Math.min(100, Number(data.confidence_score) || 0))
+  const typeLabel = data.company_type === 'private' ? 'Private company' : data.company_type === 'unknown' ? 'Classification pending' : 'Public company'
+  const primaryMetric = firstValue(data.snapshot?.market_cap, data.funding?.total_raised, data.market_size, 'Research coverage')
+  const secondaryMetric = firstValue(data.snapshot?.revenue, data.funding?.latest_amount, data.growth_signals?.employee_count && `${data.growth_signals.employee_count} employees`)
+  const status = confidence >= 80 ? 'Strong coverage' : confidence >= 60 ? 'Good coverage' : 'Needs verification'
+
+  return (
+    <section className="overview-panel">
+      <div className="overview-primary">
+        <span className="eyebrow">{typeLabel}</span>
+        <h2>{primaryMetric}</h2>
+        <p>{data.summary || data.positioning?.overview || 'Source-grounded market research report generated from live company data.'}</p>
+        <div className="progress-track" aria-label={`Confidence ${confidence} out of 100`}>
+          <div className="progress-fill" style={{ width: `${confidence}%` }} />
+        </div>
+        <div className="overview-meta">
+          <span>{confidence}% confidence</span>
+          <span>{data.sources_count || data.sources?.length || 0} sources reviewed</span>
+          {secondaryMetric && <span>{secondaryMetric}</span>}
+        </div>
+      </div>
+      <div className="overview-forecast">
+        <span className="eyebrow">Research Read</span>
+        <strong>{status}</strong>
+        <p>{sourcesNote || 'Recent sources and structured data are used where available.'}</p>
+        <div className="forecast-pills">
+          {data.snapshot?.ticker && <span>{data.snapshot.ticker}</span>}
+          {data.stage && <span>{data.stage}</span>}
+          {data.market_size && <span>{data.market_size}</span>}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ReportKpis({ data }) {
+  const isPrivate = data.company_type === 'private'
+  const kpis = isPrivate
+    ? [
+        { label: 'Total Raised', value: data.funding?.total_raised, sub: data.funding?.latest_round },
+        { label: 'Latest Round', value: data.funding?.latest_amount || data.funding?.latest_round, sub: data.funding?.lead_investor && `Led by ${data.funding.lead_investor}` },
+        { label: 'Employees', value: data.growth_signals?.employee_count, sub: data.growth_signals?.employee_growth_pct && `+${data.growth_signals.employee_growth_pct}% growth` },
+        { label: 'Open Roles', value: data.growth_signals?.open_positions, sub: data.growth_signals?.hiring_activity },
+      ]
+    : [
+        { label: 'Market Cap', value: data.snapshot?.market_cap, sub: data.snapshot?.exchange },
+        { label: 'Revenue TTM', value: data.snapshot?.revenue, sub: data.financial_ratios?.revenue_growth != null ? `${pct(data.financial_ratios.revenue_growth)} growth` : null },
+        { label: 'Net Income', value: data.snapshot?.net_income, sub: data.financial_ratios?.net_margin != null ? `${pct(data.financial_ratios.net_margin)} margin` : null },
+        { label: 'Analyst Target', value: money(data.analyst_sentiment?.target_mean_price), sub: data.analyst_sentiment?.consensus },
+      ]
+
+  const visible = kpis.filter(k => k.value)
+  if (!visible.length) return null
+
+  return (
+    <div className="kpi-grid">
+      {visible.map(kpi => (
+        <div className="kpi-card" key={kpi.label}>
+          <span>{kpi.label}</span>
+          <strong>{kpi.value}</strong>
+          {kpi.sub && <small>{kpi.sub}</small>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -912,7 +1038,7 @@ function HeaderLogo({ url, name }) {
 // ─── Confidence ───────────────────────────────────────────────────────────────
 
 function ConfidencePill({ score, sources }) {
-  const color = score >= 80 ? '#2F7A52' : score >= 60 ? '#B8791E' : '#B23B3B'
+  const color = score >= 80 ? '#2F7A52' : score >= 60 ? '#655EDD' : '#9A4A4A'
   return (
     <div className="confidence-pill-wrapper" tabIndex={0} aria-label="AI Confidence Score description">
       <div className="confidence-pill" style={{ borderColor: color }}>
@@ -926,8 +1052,8 @@ function ConfidencePill({ score, sources }) {
         <div className="confidence-tooltip-ranges">
           <div><span style={{ color: '#2F7A52', fontWeight: 700 }}>90 – 100</span> Rich data, multiple verified sources</div>
           <div><span style={{ color: '#2F7A52', fontWeight: 700 }}>70 – 89</span> Good coverage, minor gaps</div>
-          <div><span style={{ color: '#B8791E', fontWeight: 700 }}>50 – 69</span> Significant gaps or older data</div>
-          <div><span style={{ color: '#B23B3B', fontWeight: 700 }}>0 – 49</span> Very limited public information</div>
+          <div><span style={{ color: '#655EDD', fontWeight: 700 }}>50 – 69</span> Significant gaps or older data</div>
+          <div><span style={{ color: '#9A4A4A', fontWeight: 700 }}>0 – 49</span> Very limited public information</div>
         </div>
       </div>
     </div>
@@ -1048,7 +1174,7 @@ function StockChart({ initialData, ticker }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
     const d = payload[0].payload
-    const color = (d.change ?? 0) >= 0 ? '#2F7A52' : '#B23B3B'
+    const color = (d.change ?? 0) >= 0 ? '#2F7A52' : '#9A4A4A'
     return (
       <div className="chart-tooltip">
         <div className="tooltip-date">{label}</div>
@@ -1077,10 +1203,10 @@ function StockChart({ initialData, ticker }) {
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
-            <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
-            <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} width={56} />
-            <ChartGradientDefs gradients={[{ id: 'grad-stock', from: '#3F37C9', to: '#4CC9F0', horizontal: true }]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
+            <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
+            <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} width={56} />
+            <ChartGradientDefs gradients={[{ id: 'grad-stock', from: '#2F7A52', to: '#655EDD', horizontal: true }]} />
             <Tooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="close" stroke="url(#grad-stock)" dot={false} strokeWidth={2.5} />
           </LineChart>
@@ -1299,12 +1425,12 @@ function AnnualRevenueChart({ data }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <ChartGradientDefs gradients={[
-            { id: 'grad-rev-revenue', from: '#4361EE', to: '#3F37C9' },
-            { id: 'grad-rev-grossprofit', from: '#4CC9F0', to: '#4895EF' },
+            { id: 'grad-rev-revenue', from: '#2F7A52', to: '#4E9A71' },
+            { id: 'grad-rev-grossprofit', from: '#B6AFD0', to: '#655EDD' },
           ]} />
-          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="revenue" fill="url(#grad-rev-revenue)" name="Revenue" radius={[3, 3, 0, 0]} />
@@ -1321,12 +1447,12 @@ function AnnualIncomeChart({ data }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <ChartGradientDefs gradients={[
-            { id: 'grad-inc-opincome', from: '#7209B7', to: '#560BAD' },
-            { id: 'grad-inc-netincome', from: '#F72585', to: '#B5179E' },
+            { id: 'grad-inc-opincome', from: '#655EDD', to: '#4F49B8' },
+            { id: 'grad-inc-netincome', from: '#0B140F', to: '#666C73' },
           ]} />
-          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="operating_income" fill="url(#grad-inc-opincome)" name="Operating Income" radius={[3, 3, 0, 0]} />
@@ -1342,10 +1468,10 @@ function AnnualFCFChart({ data }) {
     <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <ChartGradientDefs gradients={[{ id: 'grad-fcf', from: '#480CA8', to: '#3A0CA3' }]} />
-          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <ChartGradientDefs gradients={[{ id: 'grad-fcf', from: '#2F7A52', to: '#655EDD' }]} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Bar dataKey="fcf" fill="url(#grad-fcf)" name="Free Cash Flow" radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -1359,12 +1485,12 @@ function AnnualEPSChart({ data }) {
     <Section title="Annual EPS" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <ChartGradientDefs gradients={[{ id: 'grad-eps', from: '#B5179E', to: '#F72585', horizontal: true }]} />
-          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
-          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
+          <ChartGradientDefs gradients={[{ id: 'grad-eps', from: '#655EDD', to: '#B6AFD0', horizontal: true }]} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
           <Tooltip formatter={v => v != null ? `$${v.toFixed(2)}` : '—'} />
-          <Line type="monotone" dataKey="eps" stroke="url(#grad-eps)" strokeWidth={2.5} dot={{ fill: '#F72585', r: 4 }} name="EPS" />
+          <Line type="monotone" dataKey="eps" stroke="url(#grad-eps)" strokeWidth={2.5} dot={{ fill: '#655EDD', r: 4 }} name="EPS" />
         </LineChart>
       </ResponsiveContainer>
     </Section>
@@ -1386,12 +1512,12 @@ function QuarterlyChart({ data }) {
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={visible} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <ChartGradientDefs gradients={[
-            { id: 'grad-qtr-revenue', from: '#4361EE', to: '#3F37C9' },
-            { id: 'grad-qtr-netincome', from: '#F72585', to: '#B5179E' },
+            { id: 'grad-qtr-revenue', from: '#2F7A52', to: '#4E9A71' },
+            { id: 'grad-qtr-netincome', from: '#655EDD', to: '#B6AFD0' },
           ]} />
-          <CartesianGrid strokeDasharray="3 3" stroke="#ECECEE" />
-          <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#ADADB2' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#ADADB2' }} axisLine={false} tickLine={false} unit="B" width={40} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
+          <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#868E96' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} unit="B" width={40} />
           <Tooltip formatter={v => v != null ? `$${v}B` : '—'} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="revenue" fill="url(#grad-qtr-revenue)" name="Revenue" radius={[3, 3, 0, 0]} />
@@ -1436,9 +1562,9 @@ function SwotGrid({ swot }) {
   if (!swot) return null
   const quadrants = [
     { key: 'strengths',    label: 'Strengths',    color: '#2F7A52', bg: 'rgba(47,122,82,.05)',   border: 'rgba(47,122,82,.18)'   },
-    { key: 'weaknesses',   label: 'Weaknesses',   color: '#B23B3B', bg: 'rgba(178,59,59,.05)',   border: 'rgba(178,59,59,.18)'   },
-    { key: 'opportunities',label: 'Opportunities',color: '#2A4F82', bg: 'rgba(42,79,130,.05)',   border: 'rgba(42,79,130,.18)'   },
-    { key: 'threats',      label: 'Threats',      color: '#B8791E', bg: 'rgba(184,121,30,.05)',   border: 'rgba(184,121,30,.18)'   },
+    { key: 'weaknesses',   label: 'Weaknesses',   color: '#9A4A4A', bg: 'rgba(154,74,74,.05)',   border: 'rgba(154,74,74,.18)'   },
+    { key: 'opportunities',label: 'Opportunities',color: '#655EDD', bg: 'rgba(101,94,221,.06)',   border: 'rgba(101,94,221,.18)'   },
+    { key: 'threats',      label: 'Threats',      color: '#666C73', bg: 'rgba(102,108,115,.06)',   border: 'rgba(102,108,115,.18)'   },
   ]
   return (
     <div className="swot-grid">
