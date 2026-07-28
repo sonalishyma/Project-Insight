@@ -260,7 +260,7 @@ export default function App() {
 
   return (
     <>
-      <div className="app-shell">
+      <div className={`app-shell ${showHome ? 'landing-shell' : ''}`}>
         <aside className="app-sidebar" aria-label="Main navigation">
           <button className="brand-block" onClick={goHome} aria-label="Go home">
             <span className="brand-mark">I</span>
@@ -282,13 +282,29 @@ export default function App() {
         </aside>
 
         <main className="app-main">
-          <div className="topbar">
-            <header className="app-header">
-              <h1>{result ? 'Campaign Details' : 'Market Research'}</h1>
-              <p>{result ? 'Outcome first, drivers next, sources always visible.' : 'AI-powered market research for any company, public or private.'}</p>
-            </header>
+          {showHome ? (
+            <nav className="landing-nav" aria-label="Landing navigation">
+              <button className="landing-brand" onClick={goHome} aria-label="Insight home">
+                <span className="landing-logo">◆</span>
+                <span>Insight</span>
+              </button>
+              <div className="landing-links">
+                <a href="#capabilities">Capabilities</a>
+                <a href="#workflow">How it works</a>
+                <a href="#examples">Examples</a>
+              </div>
+              <button className="landing-nav-cta" onClick={() => document.querySelector('.hero-search input')?.focus()}>
+                Start researching
+              </button>
+            </nav>
+          ) : (
+            <div className="topbar">
+              <header className="app-header">
+                <h1>Campaign Details</h1>
+                <p>Outcome first, drivers next, sources always visible.</p>
+              </header>
 
-            <form onSubmit={handleSubmit} className="search-form">
+              <form onSubmit={handleSubmit} className="search-form">
               <div className="search-input-wrap">
                 <input
                   type="text"
@@ -321,8 +337,9 @@ export default function App() {
               <button type="submit" disabled={loading || !company.trim()}>
                 {loading ? 'Analyzing...' : 'Analyze'}
               </button>
-            </form>
-          </div>
+              </form>
+            </div>
+          )}
 
           {result && (
             <div className="report-top-banner">
@@ -383,9 +400,79 @@ const EXAMPLE_COMPANIES = [
 const HOME_EXAMPLE_GRADIENTS = 6
 
 function HomePage({ onSearch }) {
+  const [query, setQuery] = useState('')
+
+  function submit(e) {
+    e.preventDefault()
+    onSearch(query)
+  }
+
   return (
     <div className="home-page">
-      <div className="home-features">
+      <section className="landing-hero">
+        <div className="hero-kicker"><span /> Research at the speed of a decision</div>
+        <h1>Know any market.<br />Move before it does.</h1>
+        <p className="hero-copy">
+          Turn live financials, market signals, competitors, and trusted sources into a decision-ready company brief in minutes.
+        </p>
+        <form className="hero-search" onSubmit={submit}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Enter a company — e.g. Nvidia"
+            aria-label="Company to research"
+          />
+          <button type="submit" disabled={!query.trim()}>Build my report <span>↗</span></button>
+        </form>
+        <div className="hero-note">No setup. Public and private companies. Sources included.</div>
+
+        <div className="hero-product" aria-label="Insight report preview">
+          <div className="hero-orb hero-orb-one" />
+          <div className="hero-orb hero-orb-two" />
+          <div className="hero-product-window">
+            <div className="preview-sidebar">
+              <div className="preview-mini-brand">◆</div>
+              <span className="active" />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="preview-body">
+              <div className="preview-topline">
+                <div><small>COMPANY BRIEF</small><strong>Nvidia</strong></div>
+                <span className="preview-status">94% confidence</span>
+              </div>
+              <div className="preview-grid">
+                <div className="preview-panel preview-chart">
+                  <small>MARKET MOMENTUM</small>
+                  <strong>+86.4%</strong>
+                  <svg viewBox="0 0 360 100" role="img" aria-label="Rising market chart">
+                    <path d="M0 82 C42 68, 60 76, 98 54 S153 63, 190 40 S250 52, 282 20 S330 28, 360 8" fill="none" stroke="currentColor" strokeWidth="4" />
+                    <path d="M0 82 C42 68, 60 76, 98 54 S153 63, 190 40 S250 52, 282 20 S330 28, 360 8 L360 100 L0 100Z" fill="url(#chartFill)" opacity=".2" />
+                    <defs><linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1"><stop stopColor="currentColor" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></linearGradient></defs>
+                  </svg>
+                </div>
+                <div className="preview-panel preview-signal">
+                  <small>AI SIGNAL</small>
+                  <p>Demand remains structurally strong as accelerated computing expands beyond cloud.</p>
+                  <span>View evidence →</span>
+                </div>
+              </div>
+              <div className="preview-pills"><span>Financials</span><span>Competitive map</span><span>Live sources</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="trust-row">
+          <span>Built for sharper decisions at</span>
+          <strong>NORTHSTAR</strong><strong>FOUNDRY</strong><strong>VECTOR</strong><strong>ASCENT</strong>
+        </div>
+      </section>
+
+      <section className="home-capabilities" id="capabilities">
+        <div className="section-eyebrow">One research system</div>
+        <h2>Find the signal.<br />Skip the noise.</h2>
+        <div className="home-features">
         <div className="home-feature-card home-feature-card--blue">
           <span className="home-feature-icon">01</span>
           <div className="home-feature-title">Public Companies</div>
@@ -428,8 +515,9 @@ function HomePage({ onSearch }) {
           </ul>
         </div>
       </div>
+      </section>
 
-      <div className="home-examples">
+      <div className="home-examples" id="examples">
         <div className="home-examples-label">Try an example</div>
         <div className="home-examples-pills">
           {EXAMPLE_COMPANIES.map((c, i) => (
