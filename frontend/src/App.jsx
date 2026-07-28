@@ -544,20 +544,9 @@ function HomePage({ onSearch }) {
 
 function ResearchLibrary({ savedReports, favorites, history, open, onToggleOpen, onOpenReport, onSearch, onToggleFavorite }) {
   const hasItems = savedReports.length || favorites.length || history.length
-  const itemCount = savedReports.length + favorites.length + history.length
 
   return (
     <aside className={`library-side ${open ? 'open' : ''}`}>
-      <button
-        className="library-tab"
-        onClick={onToggleOpen}
-        aria-expanded={open}
-        aria-label={open ? 'Close research library' : 'Open research library'}
-      >
-        <span>Library</span>
-        {itemCount > 0 && <strong>{itemCount}</strong>}
-      </button>
-
       <div className="library-panel">
         <div className="library-panel-header">
           <div>
