@@ -16,10 +16,8 @@ from . import pipeline, market_data, search, social, media
 logger = logging.getLogger("uvicorn.error")
 
 limiter = Limiter(key_func=get_remote_address)
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "https://project-insight-roan.vercel.app",
-).rstrip("/")
+FRONTEND_URL = "https://project-insight-roan.vercel.app"
+DEPLOYED_FRONTEND_URL = os.getenv("FRONTEND_URL", "").rstrip("/")
 
 app = FastAPI(
     title="Insight Market Intelligence API",
@@ -41,8 +39,8 @@ _origins = [
     "http://127.0.0.1:5173",
     "https://project-insight-roan.vercel.app",
 ]
-if FRONTEND_URL not in _origins:
-    _origins.append(FRONTEND_URL)
+if DEPLOYED_FRONTEND_URL and DEPLOYED_FRONTEND_URL not in _origins:
+    _origins.append(DEPLOYED_FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
