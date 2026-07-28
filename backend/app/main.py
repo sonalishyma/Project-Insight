@@ -16,7 +16,16 @@ from . import pipeline, market_data, search, social, media
 logger = logging.getLogger("uvicorn.error")
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Market Research Tool")
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://project-insight-roan.vercel.app",
+).rstrip("/")
+
+app = FastAPI(
+    title="Insight Market Intelligence API",
+    description="Production API for the Insight AI-powered market research experience.",
+    version="2.0.0",
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -32,8 +41,8 @@ _origins = [
     "http://127.0.0.1:5173",
     "https://project-insight-roan.vercel.app",
 ]
-if os.getenv("FRONTEND_URL"):
-    _origins.append(os.environ["FRONTEND_URL"])
+if FRONTEND_URL not in _origins:
+    _origins.append(FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,9 +52,24 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "Insight Market Intelligence API",
+        "status": "online",
+        "frontend": FRONTEND_URL,
+        "docs": "/docs",
+    }
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "service": "insight-api",
+        "version": app.version,
+        "frontend": FRONTEND_URL,
+    }
 
 
 @app.get("/debug/market")
