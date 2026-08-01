@@ -223,3 +223,7 @@ For deployment:
 ## License
 
 No license file is currently included. Add one before publishing if you want to define how others can use this project.
+
+## Product Demo
+
+[▶ Watch the full Insight product demo](./Insight%20Video.mp4)
