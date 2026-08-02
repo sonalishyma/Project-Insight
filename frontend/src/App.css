@@ -2257,3 +2257,154 @@ select {
   .app-shell:not(.landing-shell) .app-main { padding: 14px 12px 48px; }
   .app-shell:not(.landing-shell) .report-header { padding: 20px 16px; }
 }
+
+/* ── Report readability and warm brand refresh ── */
+.app-shell:not(.landing-shell) .report {
+  gap: 18px;
+  color: #24211f;
+}
+
+.app-shell:not(.landing-shell) .report-grid > *,
+.app-shell:not(.landing-shell) .two-col > * {
+  min-width: 0;
+}
+
+.app-shell:not(.landing-shell) .section {
+  padding: 30px;
+  border-color: #eadfd9;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 214, 203, .18), transparent 28%),
+    #fff;
+}
+
+.app-shell:not(.landing-shell) .section-header h3,
+.app-shell:not(.landing-shell) .section-header-label,
+.app-shell:not(.landing-shell) .metrics-group-header,
+.app-shell:not(.landing-shell) .financial-summary-label,
+.app-shell:not(.landing-shell) .subsection-label {
+  color: #7c5e55;
+  font-size: .76rem;
+  font-weight: 750;
+  letter-spacing: .105em;
+}
+
+.app-shell:not(.landing-shell) .section-meta {
+  color: #96857f;
+  font-size: .77rem;
+}
+
+.app-shell:not(.landing-shell) .summary-text,
+.app-shell:not(.landing-shell) .financial-summary-text,
+.app-shell:not(.landing-shell) .section p,
+.app-shell:not(.landing-shell) .wiki-summary,
+.app-shell:not(.landing-shell) .competitor-note {
+  font-size: 1.02rem;
+  line-height: 1.72;
+}
+
+.app-shell:not(.landing-shell) .metrics-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.app-shell:not(.landing-shell) .metrics-group-block {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #eee2dc;
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgba(255,247,244,.9), rgba(250,247,255,.86));
+}
+
+.app-shell:not(.landing-shell) .metrics-group-header {
+  margin-bottom: 13px;
+}
+
+.app-shell:not(.landing-shell) .metrics-tile-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+  gap: 10px;
+}
+
+.app-shell:not(.landing-shell) .metric-tile {
+  min-width: 0;
+  min-height: 118px;
+  padding: 18px;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(89, 44, 31, .055);
+}
+
+.app-shell:not(.landing-shell) .metric-tile-value {
+  font-size: 1.55rem;
+  line-height: 1.05;
+}
+
+.app-shell:not(.landing-shell) .metric-tile-label {
+  margin-top: 7px;
+  color: #3e3632;
+  font-size: .79rem;
+}
+
+.app-shell:not(.landing-shell) .metric-tile-sub {
+  margin-top: 3px;
+  color: #8e7d76;
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
+.app-shell:not(.landing-shell) .financial-summary-block {
+  margin-top: 26px;
+  padding: 22px 24px;
+  border: 1px solid #ffd7cc;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #fff4f1, #fff8fb 52%, #f5f1ff);
+}
+
+.app-shell:not(.landing-shell) .swot-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.app-shell:not(.landing-shell) .swot-quadrant {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid !important;
+  border-radius: 16px;
+}
+
+.app-shell:not(.landing-shell) .swot-label {
+  font-size: .72rem;
+}
+
+.app-shell:not(.landing-shell) .swot-quadrant ul li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: .96rem;
+  line-height: 1.62;
+}
+
+.app-shell:not(.landing-shell) .recharts-text {
+  font-size: .77rem;
+}
+
+@media (max-width: 1280px) {
+  .app-shell:not(.landing-shell) .metrics-board { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .app-shell:not(.landing-shell) .report-grid,
+  .app-shell:not(.landing-shell) .report-grid--top,
+  .app-shell:not(.landing-shell) .report-grid--market {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .app-shell:not(.landing-shell) .section { padding: 22px 18px; }
+  .app-shell:not(.landing-shell) .metrics-group-block { padding: 14px; }
+  .app-shell:not(.landing-shell) .metrics-tile-row,
+  .app-shell:not(.landing-shell) .swot-grid { grid-template-columns: 1fr; }
+}
