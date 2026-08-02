@@ -4,6 +4,12 @@ Insight is a full-stack market research app that turns a company name into a str
 
 The app supports both public companies and private startups. Public companies receive financial metrics, stock history, analyst sentiment, earnings data, and SEC event context. Private companies receive startup-focused sections such as funding, investors, growth signals, milestones, and market traction.
 
+## Project Preview
+
+![Insight market research report overview](./SS1.png)
+
+![Insight financial analysis and charts](./SS2.png)
+
 ## Features
 
 - **AI-generated company briefs** with summary, market size, positioning, SWOT, competitors, confidence score, and cited sources.
