@@ -293,9 +293,6 @@ export default function App() {
                 <a href="#workflow">How it works</a>
                 <a href="#examples">Examples</a>
               </div>
-              <button className="landing-nav-cta" onClick={() => document.querySelector('.hero-search input')?.focus()}>
-                Start researching
-              </button>
             </nav>
           ) : (
             <div className="topbar">
@@ -410,16 +407,16 @@ function HomePage({ onSearch }) {
   return (
     <div className="home-page">
       <section className="landing-hero">
-        <div className="hero-kicker"><span /> Research at the speed of a decision</div>
+        <div className="hero-kicker">Research at the speed of a decision</div>
         <h1>Know any market.<br />Move before it does.</h1>
         <p className="hero-copy">
-          Turn live financials, market signals, competitors, and trusted sources into a decision-ready company brief in minutes.
+          Turn live financials, market signals, competitors, and trusted sources into a decision ready company brief in minutes.
         </p>
         <form className="hero-search" onSubmit={submit}>
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Enter a company — e.g. Nvidia"
+            placeholder="Enter a company, e.g. Nvidia"
             aria-label="Company to research"
           />
           <button type="submit" disabled={!query.trim()}>Build my report <span>↗</span></button>
@@ -463,10 +460,6 @@ function HomePage({ onSearch }) {
           </div>
         </div>
 
-        <div className="trust-row">
-          <span>Built for sharper decisions at</span>
-          <strong>NORTHSTAR</strong><strong>FOUNDRY</strong><strong>VECTOR</strong><strong>ASCENT</strong>
-        </div>
       </section>
 
       <section className="home-capabilities" id="capabilities">
@@ -477,13 +470,13 @@ function HomePage({ onSearch }) {
           <span className="home-feature-icon">01</span>
           <div className="home-feature-title">Public Companies</div>
           <div className="home-feature-desc">
-            Stock performance, financial ratios, revenue charts, valuation metrics, quarterly earnings, and AI-generated competitive analysis — all in one place.
+            Stock performance, financial ratios, revenue charts, valuation metrics, quarterly earnings, and AI generated competitive analysis, all in one place.
           </div>
           <ul className="home-feature-list">
             <li>Stock price &amp; historical charts</li>
             <li>P/E, EV/EBITDA, margins, ROE</li>
             <li>Annual &amp; quarterly financials</li>
-            <li>Analyst-grade SWOT &amp; positioning</li>
+            <li>Analyst grade SWOT &amp; positioning</li>
           </ul>
         </div>
 
@@ -491,7 +484,7 @@ function HomePage({ onSearch }) {
           <span className="home-feature-icon">02</span>
           <div className="home-feature-title">Private Startups</div>
           <div className="home-feature-desc">
-            No financial filings? No problem. Insight automatically switches to a startup-native dashboard covering what actually matters for early-stage companies.
+            No financial filings? No problem. Insight automatically switches to a startup native dashboard covering what actually matters for early stage companies.
           </div>
           <ul className="home-feature-list">
             <li>Funding rounds &amp; investors</li>
@@ -503,9 +496,9 @@ function HomePage({ onSearch }) {
 
         <div className="home-feature-card home-feature-card--teal">
           <span className="home-feature-icon">03</span>
-          <div className="home-feature-title">Source-Grounded AI</div>
+          <div className="home-feature-title">Source Grounded AI</div>
           <div className="home-feature-desc">
-            Every claim in the analysis is traceable to live web sources fetched at query time — not cached knowledge. News, filings, and research from trusted publications.
+            Every claim in the analysis is traceable to live web sources fetched at query time, not cached knowledge. News, filings, and research from trusted publications.
           </div>
           <ul className="home-feature-list">
             <li>Live web search via Tavily</li>
@@ -534,7 +527,7 @@ function HomePage({ onSearch }) {
       </div>
 
       <div className="home-disclaimer">
-        Insight runs on free-tier APIs and an auto-sleeping backend, so your first search may take 30–60 seconds or need a second try &amp; that's completely normal. Results are worth the wait.
+        Insight runs on free tier APIs and an auto sleeping backend, so your first search may take 30 to 60 seconds or need a second try &amp; that's completely normal. Results are worth the wait.
       </div>
     </div>
   )
@@ -1283,7 +1276,7 @@ function StockChart({ initialData, ticker }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
             <XAxis dataKey="date" tickFormatter={d => period === '1d' ? d.slice(11, 16) : d.slice(5)} tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
             <YAxis domain={[min - pad, max + pad]} tickFormatter={v => `$${v.toFixed(0)}`} tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} width={56} />
-            <ChartGradientDefs gradients={[{ id: 'grad-stock', from: '#2F7A52', to: '#655EDD', horizontal: true }]} />
+            <ChartGradientDefs gradients={[{ id: 'grad-stock', from: '#FF4218', to: '#A63C5B', horizontal: true }]} />
             <Tooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="close" stroke="url(#grad-stock)" dot={false} strokeWidth={2.5} />
           </LineChart>
@@ -1481,8 +1474,7 @@ function FinancialMetrics({ ratios, summary }) {
 
 // ─── Annual Charts ────────────────────────────────────────────────────────────
 
-// Shared "Purple Raindrops" gradient defs — reused across all charts so each
-// metric (Revenue, Net Income, etc.) keeps a consistent color identity.
+// Shared warm brand gradients used across report charts.
 function ChartGradientDefs({ gradients }) {
   return (
     <defs>
@@ -1502,8 +1494,8 @@ function AnnualRevenueChart({ data }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <ChartGradientDefs gradients={[
-            { id: 'grad-rev-revenue', from: '#2F7A52', to: '#4E9A71' },
-            { id: 'grad-rev-grossprofit', from: '#B6AFD0', to: '#655EDD' },
+            { id: 'grad-rev-revenue', from: '#FF4218', to: '#FF8A62' },
+            { id: 'grad-rev-grossprofit', from: '#FF8FA8', to: '#C94F78' },
           ]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
@@ -1524,8 +1516,8 @@ function AnnualIncomeChart({ data }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <ChartGradientDefs gradients={[
-            { id: 'grad-inc-opincome', from: '#655EDD', to: '#4F49B8' },
-            { id: 'grad-inc-netincome', from: '#0B140F', to: '#666C73' },
+            { id: 'grad-inc-opincome', from: '#FF5B31', to: '#FF9B7C' },
+            { id: 'grad-inc-netincome', from: '#FFB6C8', to: '#A63C5B' },
           ]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
@@ -1545,7 +1537,7 @@ function AnnualFCFChart({ data }) {
     <Section title="Annual Free Cash Flow ($B)" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <ChartGradientDefs gradients={[{ id: 'grad-fcf', from: '#2F7A52', to: '#655EDD' }]} />
+          <ChartGradientDefs gradients={[{ id: 'grad-fcf', from: '#FF4218', to: '#FF9FB3' }]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} unit="B" width={40} />
@@ -1562,12 +1554,12 @@ function AnnualEPSChart({ data }) {
     <Section title="Annual EPS" action={<span className="section-source-tag">FMP</span>}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-          <ChartGradientDefs gradients={[{ id: 'grad-eps', from: '#655EDD', to: '#B6AFD0', horizontal: true }]} />
+          <ChartGradientDefs gradients={[{ id: 'grad-eps', from: '#FF4218', to: '#A63C5B', horizontal: true }]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
           <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#868E96' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toFixed(1)}`} width={48} />
           <Tooltip formatter={v => v != null ? `$${v.toFixed(2)}` : '—'} />
-          <Line type="monotone" dataKey="eps" stroke="url(#grad-eps)" strokeWidth={2.5} dot={{ fill: '#655EDD', r: 4 }} name="EPS" />
+          <Line type="monotone" dataKey="eps" stroke="url(#grad-eps)" strokeWidth={3} dot={{ fill: '#FF5B31', stroke: '#FFF4F1', strokeWidth: 2, r: 4 }} name="EPS" />
         </LineChart>
       </ResponsiveContainer>
     </Section>
@@ -1589,8 +1581,8 @@ function QuarterlyChart({ data }) {
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={visible} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <ChartGradientDefs gradients={[
-            { id: 'grad-qtr-revenue', from: '#2F7A52', to: '#4E9A71' },
-            { id: 'grad-qtr-netincome', from: '#655EDD', to: '#B6AFD0' },
+            { id: 'grad-qtr-revenue', from: '#FF4218', to: '#FF8A62' },
+            { id: 'grad-qtr-netincome', from: '#FF9FB3', to: '#A63C5B' },
           ]} />
           <CartesianGrid strokeDasharray="3 3" stroke="#E1E5E0" />
           <XAxis dataKey="quarter" tickFormatter={d => d.slice(0, 7)} tick={{ fontSize: 10, fill: '#868E96' }} axisLine={false} tickLine={false} />
@@ -1638,10 +1630,10 @@ function PositioningSection({ pos, meta }) {
 function SwotGrid({ swot }) {
   if (!swot) return null
   const quadrants = [
-    { key: 'strengths',    label: 'Strengths',    color: '#2F7A52', bg: 'rgba(47,122,82,.05)',   border: 'rgba(47,122,82,.18)'   },
-    { key: 'weaknesses',   label: 'Weaknesses',   color: '#9A4A4A', bg: 'rgba(154,74,74,.05)',   border: 'rgba(154,74,74,.18)'   },
-    { key: 'opportunities',label: 'Opportunities',color: '#655EDD', bg: 'rgba(101,94,221,.06)',   border: 'rgba(101,94,221,.18)'   },
-    { key: 'threats',      label: 'Threats',      color: '#666C73', bg: 'rgba(102,108,115,.06)',   border: 'rgba(102,108,115,.18)'   },
+    { key: 'strengths',    label: 'Strengths',    color: '#D83C17', bg: '#FFF0EC', border: '#FFD2C7' },
+    { key: 'weaknesses',   label: 'Weaknesses',   color: '#A63C5B', bg: '#FFF0F4', border: '#F7CAD7' },
+    { key: 'opportunities',label: 'Opportunities',color: '#655EDD', bg: '#F1EDFF', border: '#DAD4FF' },
+    { key: 'threats',      label: 'Threats',      color: '#A65C14', bg: '#FFF5E7', border: '#F6D7AD' },
   ]
   return (
     <div className="swot-grid">
