@@ -1,89 +1,107 @@
-# Insight — Product Requirements Document
+# Project Insight Product Requirements Document
 
-## Problem
+**Product:** Project Insight<br>
+**Owner:** Sonali Singh<br>
+**Status:** Deployed product<br>
+**Last updated:** August 4, 2026
 
-Researching a company today means opening eight tabs — a stock screener, SEC filings,
-Crunchbase, Glassdoor, Twitter, and three news sites — and manually synthesizing what
-you find. That's slow for anyone who needs a fast, structured read on a company: an
-investor sizing up a position, a founder scoping competitors, or a candidate deciding
-whether to take an offer.
+## Product purpose
 
-Insight collapses that research loop into one query: type a company name, get a
-structured, source-grounded decision brief in under a minute.
+Company research is fragmented across market feeds, SEC filings, articles, and social sources. Project Insight reduces that work to one query and returns a structured, source grounded brief for a public company or private startup.
 
-## Personas
+The product is designed for research assistance. It does not provide financial advice and it does not replace verification of primary sources.
 
-| Persona | Job to be done | What they need from the brief |
-|---|---|---|
-| **Investor** | Decide whether a public company is worth researching further | Valuation multiples, margin trends, analyst sentiment, competitive positioning |
-| **Founder** | Understand the competitive landscape before building or pitching | Competitor overlap, market sizing, positioning, funding comps for private players |
-| **Job seeker** | Decide whether to take an interview or offer | Growth signals, funding health, culture/sentiment signals, "what's happening now" |
+## Users and needs
 
-The same underlying data (financials, SWOT, news, sources) serves all three — the
-differences are in which section they scan first, not in what's collected.
+**Investors** need a fast view of financial performance, valuation context, market sentiment, recent events, and competitive position before deciding where to research further.
 
-## What shipped (v1)
+**Founders and operators** need a consistent way to review competitors, positioning, funding signals, market activity, and areas of overlap.
 
-- **Dual-mode reports.** Public companies get financial statements, ratios, analyst
-  sentiment, and earnings. Private companies get a startup-native view instead
-  (funding rounds, hiring signals, milestones, traction) rather than an empty
-  financials section — the pipeline detects company type and branches the whole
-  report structure, not just hides a chart.
-- **Source-grounded generation.** Every AI-written section (SWOT, positioning,
-  summary, competitive landscape) is generated from live web search results fetched
-  at query time, not model memory — with a confidence score and, as of this update,
-  a per-section "based on N sources, most recent [date]" footnote so a reader can
-  gauge freshness without leaving the page.
-- **Market Voices.** Analyst rating actions (upgrades/downgrades) blended with
-  StockTwits retail sentiment — investor and general-sentiment signals side by side.
-  Job seekers get a rough proxy for company momentum for free from data already
-  collected for investors.
-- **Research Library.** Saved reports, favorites, and search history persisted
-  locally — repeat lookups don't require re-querying paid APIs, and a user building
-  a comparison set (e.g. a founder scoping five competitors) has a place to keep them.
-- **Export to PDF.** One button; the report strips chrome (nav, search, sidebar) and
-  prints cleanly — the artifact is meant to be shared, not just viewed once.
+**Job seekers** need a concise view of company momentum, business health, funding or earnings context, and current developments before an interview or offer decision.
 
-## What was deliberately cut (and why)
+These personas are product hypotheses derived from the research problem and use cases. The project record does not yet include completed stakeholder interviews or moderated usability sessions.
 
-- **Social media embeds (Twitter/Instagram post previews).** Reading platform APIs
-  now requires paid tiers ($200+/mo for X) with no free public read access for
-  arbitrary accounts, and scraping violates ToS. Cut rather than shipped as a
-  brittle/gray-area feature. Revisit via search-snippet retrieval (Tavily indexes
-  tweet/post content) + Twitter's free oEmbed endpoint for the one platform where
-  a clean, ToS-compliant embed is actually possible.
-- **Employer rating card (Glassdoor/Indeed score).** Same constraint — neither
-  platform exposes a public ratings API, and both actively block scraping. Cut for
-  v1; the plan is search-snippet retrieval (rating appears in the search snippet
-  itself, which is legitimate RAG, not scraping) blended with hiring-signal proxies
-  already in the data (employee growth, layoff news) rather than depending on one
-  fragile source.
-- **Compare mode (two companies side by side).** Real user need — investors and
-  job seekers both naturally compare — but deferred until the single-company report
-  is fully solid, since compare mode roughly doubles the surface area of every
-  existing bug.
+## Product goals
 
-## Success metrics (if this were shipped to real users)
+1. Turn a company name into a useful brief without requiring the user to assemble information across multiple sites.
+2. Preserve source links and freshness information so users can verify important claims.
+3. Adapt the report structure to the evidence available for public and private companies.
+4. Present results in a format that can be saved, revisited, and exported.
+5. Fail clearly when an upstream source or AI provider is unavailable.
 
-- **Time to first insight**: seconds from query submit to first meaningful content
-  render (currently gated by the slowest upstream API call in the pipeline).
-  Confidence-footnote and streaming partial results are the next lever here.
-  - **Note (as of 2026-07-01):** first-call latency currently also depends on
-    OpenRouter account credit balance — a request that exceeds the available
-    balance now fails fast with a clear `502` instead of a silent CORS-masked
-    "Failed to fetch," but the underlying fix for *speed* is unrelated to this
-    incident and still open.
-- **Repeat-query rate**: % of searches that hit the Research Library cache instead
-  of re-querying — a direct proxy for whether the tool earns a second visit.
-- **Confidence-score correlation**: whether reports with score >80 get saved/
-  favorited at a higher rate than <60 — validates whether the score is actually
-  signal or just decoration.
+## Scope delivered
 
-## Prioritization rationale
+### Company search and classification
 
-Everything in v1 is either (a) needed to make *both* company types (public/private)
-usable, or (b) cheap to add given data already being fetched for another section
-(Market Voices' retail sentiment is nearly free once analyst data is already in
-hand). Anything requiring a paid API tier or ToS-risky scraping was cut rather than
-shipped in a degraded form — a broken or gray-area integration is worse for
-trust than an honestly-missing section.
+The user can enter a company name or select an autocomplete suggestion. The backend resolves the company, gathers market evidence, and classifies it as public, private, or unknown. An unknown classification uses the public research path while clearly communicating that verified financial data was not available.
+
+### Source retrieval and transformation
+
+The backend combines current web research with market data, SEC context, news, and public sentiment sources. The pipeline normalizes this material into separate public and private company contexts before sending it to the AI model.
+
+### Structured analysis
+
+OpenRouter produces a structured report through tool calling. Pydantic response models validate the result before the FastAPI endpoint returns it to the React dashboard. Core sections include a company summary, positioning, SWOT analysis, competitors, current developments, confidence information, and cited sources.
+
+### Public company report
+
+When reliable listing and financial evidence are available, the report can include ticker and exchange details, revenue, market capitalization, financial ratios, annual performance, stock history, analyst sentiment, earnings context, and SEC events.
+
+### Private company report
+
+When no public listing is found, the report uses a startup focused structure for stage, funding, investors, traction, milestones, customers, and growth signals. Unsupported traditional public company metrics are not shown as if they exist.
+
+### Research library and export
+
+Users can save reports, maintain favorites, and revisit recent searches in browser local storage. Reports can be exported through a print optimized PDF flow. The current product has no account system or shared database.
+
+## Functional requirements
+
+1. Accept a nonempty company name and submit it to the analysis endpoint.
+2. Determine whether public market evidence supports a public, private, or unknown classification.
+3. Retrieve current sources and retain the title, link, and date when available.
+4. Route the evidence through the correct public or private analysis schema.
+5. Validate the structured response before rendering the report.
+6. Show source count and freshness information where source metadata is available.
+7. Provide direct source links for verification.
+8. Store saved reports, favorites, and recent searches locally in the browser.
+9. Provide a print optimized PDF export.
+10. Return a clear error when an upstream data or AI provider prevents report generation.
+
+Detailed user stories and acceptance criteria are maintained in [USER_STORIES.md](./USER_STORIES.md).
+
+## Iteration and product decisions
+
+The first working version established the core loop from company query to a structured report. Subsequent work improved public company detection, expanded ticker coverage, added typo tolerance, and separated public and private report paths so unavailable public metrics did not create misleading private company reports.
+
+A later trust and usability pass added source freshness notes, classification provenance, PDF export, saved research, clearer error responses, and a more focused report order. Media and social features were revised or removed when APIs, terms of service, rate limits, or presentation quality made them unreliable. Compare mode was deferred until the single company workflow is stable.
+
+The next planned validation stage is to instrument the search and report funnel, collect in product feedback, and conduct moderated sessions before making claims about user behavior. Planned work is documented separately in [insight_v2_roadmap.md](./insight_v2_roadmap.md).
+
+## Nonfunctional requirements
+
+**Traceability:** AI generated claims should be grounded in retrieved context and accompanied by source links.
+
+**Data integrity:** Unsupported fields should be omitted rather than filled from model memory.
+
+**Resilience:** Provider failures should return actionable errors instead of appearing as unexplained browser or CORS failures.
+
+**Performance:** Independent source requests should run concurrently where practical. The product should monitor report latency before setting a formal service target.
+
+**Accessibility and responsiveness:** Search, navigation, report sections, and export controls should remain usable on desktop and mobile layouts.
+
+## Dependencies and constraints
+
+The product depends on OpenRouter, Tavily, Yahoo Finance data accessed through yfinance, SEC EDGAR, and other public source endpoints. Availability, rate limits, account credit, and provider policy can affect completeness and latency.
+
+Social platform APIs and employer rating services were not treated as dependable core inputs because of paid access, restricted public APIs, scraping concerns, and changing terms of service.
+
+## Measurement plan
+
+The product does not yet have validated behavioral metrics. The next release should measure search initiation, successful report generation, section engagement, save and export actions, feedback, latency, and upstream cost.
+
+The proposed primary measure is a completed useful lookup: a report is generated and followed by a meaningful action such as section engagement, a save, an export, or positive feedback. Confidence score calibration should be tested against audited report accuracy before the score is treated as a validated trust signal.
+
+## Release acceptance
+
+A release is acceptable when a valid company query produces a schema valid report or a clear error, source links remain available for supported claims, public and private companies receive the appropriate report structure, local library actions persist after refresh, and the report can be exported without navigation chrome.
