@@ -421,6 +421,10 @@ function HomePage({ onSearch }) {
           />
           <button type="submit" disabled={!query.trim()}>Build my report <span>↗</span></button>
         </form>
+        <div className="hero-delay-note" role="note" aria-label="First search timing notice">
+          <strong>First search may take 30 to 120 seconds.</strong>
+          <span>Insight uses free tier APIs and a backend that sleeps when inactive. If the first attempt does not complete, wait a moment and try once more. This is expected, and your results are worth the wait.</span>
+        </div>
         <div className="hero-note">No setup. Public and private companies. Sources included.</div>
 
         <div className="hero-product" aria-label="Insight report preview">
@@ -526,9 +530,6 @@ function HomePage({ onSearch }) {
         </div>
       </div>
 
-      <div className="home-disclaimer">
-        Insight runs on free tier APIs and an auto sleeping backend, so your first search may take 30 to 60 seconds or need a second try &amp; that's completely normal. Results are worth the wait.
-      </div>
     </div>
   )
 }

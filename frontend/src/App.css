@@ -1775,6 +1775,21 @@ select {
 .hero-search button:hover:not(:disabled) { transform: translateY(-1px); background: #e9340c; }
 .hero-search button:disabled { opacity: .55; cursor: default; }
 .hero-search button span { margin-left: 8px; }
+.hero-delay-note {
+  max-width: 650px;
+  margin: 12px auto 0;
+  padding: 12px 15px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid #e3b341;
+  border-radius: 10px;
+  background: #fff1a8;
+  color: #5d4500;
+  font-size: .76rem;
+  line-height: 1.5;
+  text-align: left;
+}
+.hero-delay-note strong { color: #3f3000; font-size: .8rem; }
 .hero-note { margin-top: 11px; color: #aaa7a0; font-size: .66rem; }
 
 .hero-product {
